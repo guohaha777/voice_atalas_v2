@@ -115,16 +115,6 @@
     "sha256": "56d41631ab619912201db914c915b3f149b197cf7295fdacd9ce5975a0c6fe7b"
   },
   {
-    "path": "docs/product/万物声谱_新成员开发指南.html",
-    "bytes": 77195,
-    "sha256": "8834a0735b2adf69c93d2d443aec96183196d7fefee7272abe7ce8d9eb6218af"
-  },
-  {
-    "path": "docs/product/万物声谱_用户使用流程.html",
-    "bytes": 30072,
-    "sha256": "dfed5f46443659f2f4b64e1bc817ad6ae1f672c75a6fe204e87fde205e6252c9"
-  },
-  {
     "path": "assets-source/home/title/lettering-atlas.png",
     "bytes": 648100,
     "sha256": "3afb52e8e92ba60c8b3415e980475dc3cf8e8b1f93edffdce3bd729db5fec6f8"
@@ -133,36 +123,6 @@
     "path": "assets-source/home/title/doodles-atlas.png",
     "bytes": 1091126,
     "sha256": "fc26c5da5af49c1ec67224982de69064a3280ee81fb1ee449f59ce9f962e0614"
-  },
-  {
-    "path": "assets-source/start/illustrations/start-card.png",
-    "bytes": 2461312,
-    "sha256": "624675aba925c3e4385c16d7163a295d666032957e34ffe429f49fa4b0a2d5ae"
-  },
-  {
-    "path": "assets-source/start/illustrations/start-upload.png",
-    "bytes": 2236331,
-    "sha256": "6a51771a396e50d6e8b97b31179026a74425ebb9cc64edb504b7423c9450ec1e"
-  },
-  {
-    "path": "assets-source/start/illustrations/start-library.png",
-    "bytes": 2310024,
-    "sha256": "2c99cd6bc1ff1ceb285ea0351a9b2934916c6e4794b9a0897eb6c49503eef872"
-  },
-  {
-    "path": "assets-source/start/environment/corner-pond-left.png",
-    "bytes": 1060152,
-    "sha256": "c9b998b02c91c0f500a05cbaaed4c95c1339466a2f33cea178315f347e9d5b8a"
-  },
-  {
-    "path": "assets-source/start/environment/corner-fern-right.png",
-    "bytes": 1072420,
-    "sha256": "57b6196ea1cbc8b6995bb9054a0c397c488c1b2e21fc9600797da053a45453ac"
-  },
-  {
-    "path": "assets-source/start/title/start-heading.png",
-    "bytes": 435068,
-    "sha256": "0bf5943b7eaf3013c9b0a4ffcecd22f2c8d3413bafdcc03dd970a2f0a0e9fa3b"
   },
   {
     "path": "assets-source/shared/sound-markers/masters/markers-atlas.png",

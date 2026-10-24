@@ -11,7 +11,7 @@ import {WorkShelf} from '../src/mocks/workShelf.ts';
 import {clockText,scoreLayout,scorePosition,secondsAt,soundingAt,spanChoices} from '../src/pages/compose/model/scoreLayout.ts';
 import {composeReducer,initialCompose,isShelved,shelfEntry} from '../src/pages/compose/model/composeState.ts';
 import type {ComposeState} from '../src/pages/compose/model/composeState.ts';
-import {findDiscoveries} from '../src/pages/compose/model/discoveries.ts';
+import {findDiscoveries} from '../src/shared/talk/discoveries.ts';
 import {backgroundPlan} from '@wanwu-v2/sound-rules/background';
 import {RULE_VERSIONS} from '@wanwu-v2/sound-rules/rules';
 import {isBackgroundBrief,parseBackgroundResult} from '@wanwu-v2/contracts/background';
@@ -26,7 +26,7 @@ import {parseRoute,routeHref} from '../src/app/router.ts';
 import {previewNotes} from '../src/shared/inspiration/rhythmPreview.ts';
 
 const now=new Date('2026-10-23T08:00:00.000Z');
-const rendering={background:'local-rules' as const,rules:{...RULE_VERSIONS}};
+const rendering={background:'local-rules' as const,prompt:null,rules:{...RULE_VERSIONS}};
 const once={pitch:'mid',duration:'short',contour:'flat',intensity:'soft',pattern:'once'} as const;
 const unit=(id:string,markerIndex:number,name=id):SoundUnitDraft=>({version:SOUND_CONTRACT_VERSION,id,sourceId:`recording:${id}`,name,maker:null,markerIndex,
  shape:{...once},input:'manual',createdAt:now.toISOString()});
@@ -100,7 +100,10 @@ test('saving puts an exact snapshot on the shelf; any later change shows as not 
  assert.equal(parseSavedWork({...entry,id:'other'}),null,'the work id is the arrangement id');
  assert.deepEqual(entry.rendering,rendering,'it records the background kept and every rule version');
  assert.equal(parseSavedWork({...entry,rendering:{...rendering,background:'magic'}}),null);
- assert.equal(parseSavedWork({...entry,rendering:{background:'local-rules',rules:{...RULE_VERSIONS,mix:''}}}),null);
+ assert.equal(parseSavedWork({...entry,rendering:{background:'local-rules',prompt:null,rules:{...RULE_VERSIONS,mix:''}}}),null);
+ assert.equal(parseSavedWork({...entry,rendering:{...rendering,background:'notes-ai'}}),null,'an AI background names its prompt version');
+ assert.ok(parseSavedWork({...entry,rendering:{...rendering,background:'notes-ai',prompt:'background-notes-prompt-v1'}}));
+ assert.equal(parseSavedWork({...entry,rendering:{...rendering,prompt:'background-notes-prompt-v1'}}),null,'the local background has no prompt');
  assert.equal(cleanWorkTitle('一二三四五六七八九十一二三四五六七'),'一二三四五六七八九十一二三四五六');
  state=composeReducer(state,{type:'saved',work:entry});
  assert.equal(isShelved(state),true);
@@ -185,7 +188,7 @@ test('课本: the child picks a shape of the song; the background, the AI brief 
  assert.equal(songFeature(track),'「摇篮曲」是三拍子，节奏是「嗒— 嗒」，像摇篮轻轻晃。');
  const talk=textbookTalk(track,'lower',{kind:'together',example:0},'蛙鸣');
  assert.deepEqual(Object.keys(talk),['feature','shape','meeting','task']);
- assert.match(talk.meeting,/「蛙鸣」正好落在拍子上/);assert.match(talk.shape,/低处/);
+ assert.match(talk.meeting,/「蛙鸣」正好落在拍子上/);assert.match(talk.shape,/唱低了一点/);
 });
 
 test('the shelf can rename a work and take one off; empty names are refused',()=>{
@@ -274,3 +277,13 @@ test('textbook rhythm preview: whole bars at the entry’s tempo and metre, a be
  assert.deepEqual(beats.map(note=>note.at),[0,1,2,3,4,5]);
  assert.equal(previewNotes({tempo:120,metre:2}).filter(note=>note.voice==='bell').length,8);
 });
+
+test('the squirrel has something to say after every card control: no textbook, the volume, each shape',()=>{
+ let state=loaded(work());
+ state=composeReducer(state,{type:'inspiration',inspiration:{kind:'none'}});
+ assert.equal(state.lastAction,'inspiration-none');
+ state=composeReducer(state,{type:'background-volume',volume:.2});
+ assert.equal(state.lastAction,'background-volume');assert.equal(state.settings.background.volume,.2);
+ assert.equal(composeReducer(state,{type:'background-volume',volume:.2}),state,'the same volume changes nothing');
+});
+

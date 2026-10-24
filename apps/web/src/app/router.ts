@@ -1,8 +1,8 @@
 // Minimal history routing for the approved pages; no router library. Unknown paths fall back to home.
 import {useCallback,useEffect,useState} from 'react';
 
-/** `lab`: 调音台, only built in development or a preview build (the app falls back to home elsewhere). */
-export type Route={page:'home'}|{page:'sound-birth'}|{page:'sound-world'}|{page:'compose'}|{page:'works'}|{page:'lab'};
+/** `lab`: 调音台, `lab-prompts`: 提示词台 — only built in development or a preview build (the app falls back to home elsewhere). */
+export type Route={page:'home'}|{page:'sound-birth'}|{page:'sound-world'}|{page:'compose'}|{page:'works'}|{page:'lab'}|{page:'lab-prompts'};
 
 export function parseRoute(pathname:string):Route{
  const path=pathname.replace(/\/+$/,'');
@@ -11,6 +11,7 @@ export function parseRoute(pathname:string):Route{
  if(path==='/works')return {page:'works'};
  if(path==='/create')return {page:'sound-birth'};
  if(path==='/lab/sound-rules')return {page:'lab'};
+ if(path==='/lab/prompts')return {page:'lab-prompts'};
  return {page:'home'};
 }
 export function routeHref(route:Route){
@@ -18,6 +19,7 @@ export function routeHref(route:Route){
  if(route.page==='compose')return '/compose';
  if(route.page==='works')return '/works';
  if(route.page==='lab')return '/lab/sound-rules';
+ if(route.page==='lab-prompts')return '/lab/prompts';
  return route.page==='home'?'/':'/create';
 }
 

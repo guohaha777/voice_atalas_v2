@@ -6,6 +6,7 @@ export const labCopy={
  title:'调音台',
  subtitle:'只在开发 / 预览环境出现。用一组固定的声音，把通用规则调到“大多数声音都合适”，再导出规则文件。',
  readme:'每个参数的含义见 packages/sound-rules/README.md。',
+ toPrompts:'去提示词台',
  soundTitle:'声音',upload:'上传一段',loading:'正在读取…',waveLabel:'波形：浅色是主体段，深色块是找到的单个声音',
  testSetNote:(have:number,missing:number)=>`测试声音集：已有 ${have} 段（就是声音库的示例），还差 ${missing} 段待收集（见 docs/assets/test-set.json）。`,
  kind:'分类',units:'找到的单个声音',unitMs:'一声多长',band:'高低',loudness:'平均 / 峰值响度',silent:'几乎无声',

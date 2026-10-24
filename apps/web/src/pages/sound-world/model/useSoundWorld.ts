@@ -1,13 +1,13 @@
 import {useCallback,useEffect,useMemo,useReducer,useRef,useState} from 'react';
 import type {Arrangement,SourceClip,SpanSeconds} from '@wanwu-v2/contracts/arrangement';
-import type {TextbookTrack} from '@wanwu-v2/contracts/textbook';
 import {DEFAULT_COMPOSE_SETTINGS} from '@wanwu-v2/contracts/work';
 import type {ComposeSettings,Inspiration} from '@wanwu-v2/contracts/work';
 import type {Instrument} from '../../../shared/background/instruments';
 import type {BackgroundLibrary} from '../../../shared/background/library';
 import {useBackgroundLayer} from '../../../shared/background/useBackgroundLayer';
 import type {InspirationCatalog} from '../../../shared/inspiration/catalog';
-import {inspirationMatches} from '../../../shared/inspiration/matches';
+import type {TeachingMusicService} from '../../../shared/inspiration/teachingMusic';
+import {useInspirationCatalog} from '../../../shared/inspiration/useInspirationCatalog';
 import type {SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {newId} from '../../../shared/creation/ids';
 import {services} from '../../../app/services';
@@ -25,14 +25,15 @@ export type FieldSpot={at:number;row:number};
 /** 万物声场: place the work's sounds along time, edit their excerpts, pick a mood and a textbook song, then go on to
  *  万物成曲. What the field sounds like lives in useFieldSound (with the local background from useBackgroundLayer, the
  *  same layer 万物成曲 plays) and the mood in useMood; this hook owns the arrangement and the shared settings. */
-export function useSoundWorld(onFinish:(arrangement:Arrangement)=>FinishResult,repository:SoundWorldRepository=services.soundWorldRepository,moods:MoodInterpreter=services.moodInterpreter,inspirations:InspirationCatalog=services.inspirationCatalog,backgrounds:BackgroundLibrary=services.backgroundLibrary){
+export function useSoundWorld(onFinish:(arrangement:Arrangement)=>FinishResult,repository:SoundWorldRepository=services.soundWorldRepository,moods:MoodInterpreter=services.moodInterpreter,inspirations:InspirationCatalog=services.inspirationCatalog,backgrounds:BackgroundLibrary=services.backgroundLibrary,teaching:TeachingMusicService=services.teachingMusic){
  const [state,dispatch]=useReducer(soundWorldReducer,initialSoundWorld);
  const latest=useRef(state);latest.current=state;
  const notify=useCallback((key:NoticeKey,tone:'info'|'error'='error')=>dispatch({type:'notice',notice:{tone,key}}),[]);
  // 课本灵感 and the background switch are kept with the work for 万物成曲; they never move a sound.
  const [settings,setSettingsState]=useState<ComposeSettings>(DEFAULT_COMPOSE_SETTINGS);
- const [entries,setEntries]=useState<readonly TextbookTrack[]>([]);
  const [instruments,setInstruments]=useState<readonly Instrument[]>([]);
+ // 课本灵感: the same songs and 帮我找找 as 万物成曲 (shared/inspiration).
+ const {entries,matches,teachingOpen}=useInspirationCatalog(state.arrangement,inspirations,teaching);
  const background=useBackgroundLayer(settings,instruments,entries);
  const sound=useFieldSound(latest,dispatch,notify,background);
  const mood=useMood(moods,dispatch,notify);
@@ -41,11 +42,11 @@ export function useSoundWorld(onFinish:(arrangement:Arrangement)=>FinishResult,r
  useEffect(()=>{
   let live=true;
   void repository.load().then(arrangement=>{if(live)dispatch({type:'loaded',arrangement});});
-  void Promise.all([repository.loadSettings(),inspirations.list(),backgrounds.list()]).then(([current,list,library])=>{
-   if(live){setSettingsState(current);setEntries(list.entries);setInstruments(library.instruments);}
+  void Promise.all([repository.loadSettings(),backgrounds.list()]).then(([current,library])=>{
+   if(live){setSettingsState(current);setInstruments(library.instruments);}
   });
   return()=>{live=false;};
- },[repository,inspirations,backgrounds]);
+ },[repository,backgrounds]);
  const saveSettings=(next:ComposeSettings)=>{setSettingsState(next);void repository.saveSettings(next);};
  /** A new song changes what the background borrows: a running full playback stops (like any edit). */
  const setInspiration=(next:Inspiration)=>{stopAll();saveSettings({...settings,inspiration:next});dispatch({type:'said',lastAction:'inspiration'});};
@@ -54,8 +55,6 @@ export function useSoundWorld(onFinish:(arrangement:Arrangement)=>FinishResult,r
   stopAll();saveSettings({...settings,background:{...settings.background,enabled}});
   dispatch({type:'said',lastAction:enabled?'background-on':'background-off'});
  };
- /** 帮我找找: the songs most like what is placed now (local rules). */
- const matches=useMemo(()=>inspirationMatches(state.arrangement,entries),[state.arrangement,entries]);
  /** What the background is made of now (mood colour, borrowed rhythm), for the switch's line. */
  const backgroundPlan=useMemo(()=>state.arrangement?background.plan(state.arrangement):null,
  // The plan only changes with the arrangement and what the background borrows.
@@ -150,7 +149,7 @@ export function useSoundWorld(onFinish:(arrangement:Arrangement)=>FinishResult,r
   addUnit:(unit:SoundUnitDraft)=>{stopAll();dispatch({type:'add-unit',unit,now:new Date()});},
   clearEvents:()=>{stopAll();dispatch({type:'clear-events',now:new Date()});},
   scope:(scope:LibraryScope)=>repository.scope(scope),
-  inspiration:settings.inspiration,inspirationEntries:entries,setInspiration,matches,
+  inspiration:settings.inspiration,inspirationEntries:entries,setInspiration,matches,teachingOpen,
   backgroundEnabled:settings.background.enabled,backgroundTrack:background.track,backgroundPlan,setBackgroundEnabled,
  };
 }

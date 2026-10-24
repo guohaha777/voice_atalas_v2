@@ -39,7 +39,7 @@ export function ScoreCard({compose,onBack,shelfLink}:{compose:Compose;onBack:()=
    </ul>
   </div>
   {/* Just saved: the squirrel says so; this slot offers the way to the shelf for a while instead of the listening prompt. */}
-  {shelfLink?<p className={styles.shelfLink}>{shelfLink}</p>:<p className={styles.scoreHint}><Glyph name="sounds"/>{composeCopy.listenPrompt(compose.discoveries)}</p>}
+  {shelfLink?<p className={styles.shelfLink}>{shelfLink}</p>:<p className={styles.scoreHint}><Glyph name="sounds"/>{composeCopy.listenPrompt(compose.talk.facts)}</p>}
   <div className={styles.score} data-rows={rows} style={{'--rows':rows} as CSSProperties}>
    <div ref={area} className={styles.scoreField} onClick={seek} title={items.length?composeCopy.scoreSeek:undefined}>
     {Array.from({length:rows},(_,row)=><div key={row} className={styles.scoreLane} aria-hidden="true"/>)}

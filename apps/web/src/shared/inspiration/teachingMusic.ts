@@ -46,6 +46,7 @@ export class TeachingMusicStore{
 }
 export const teachingMusic=new TeachingMusicStore();
 
-/** Server side of teaching music. Offline: analysis and generation are not available, and the page says so. */
+/** Server side of teaching music (chosen in app/services.ts). Offline: analysis and generation are not available, and the
+ *  课本灵感 dialog says so; a server adapter sets `analyseAvailable` once upload and analysis exist. */
 export type TeachingMusicService={readonly analyseAvailable:boolean};
 export const offlineTeachingMusicService:TeachingMusicService={analyseAvailable:false};

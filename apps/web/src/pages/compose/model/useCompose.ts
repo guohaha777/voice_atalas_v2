@@ -1,10 +1,10 @@
 import {useCallback,useEffect,useMemo,useReducer,useRef,useState} from 'react';
 import type {Arrangement,SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import type {Inspiration} from '@wanwu-v2/contracts/work';
-import type {TextbookTrack} from '@wanwu-v2/contracts/textbook';
 import {spanHolds} from '../../../shared/creation/arrangementTiming';
 import type {InspirationCatalog} from '../../../shared/inspiration/catalog';
-import {inspirationMatches} from '../../../shared/inspiration/matches';
+import type {TeachingMusicService} from '../../../shared/inspiration/teachingMusic';
+import {useInspirationCatalog} from '../../../shared/inspiration/useInspirationCatalog';
 import type {Instrument} from '../../../shared/background/instruments';
 import type {BackgroundLibrary} from '../../../shared/background/library';
 import {useBackgroundLayer} from '../../../shared/background/useBackgroundLayer';
@@ -12,39 +12,37 @@ import type {BackgroundGenerator} from '../../../shared/background/generator';
 import {RULE_VERSIONS} from '@wanwu-v2/sound-rules/rules';
 import {useAiBackground} from './useAiBackground';
 import type {TextbookVariation} from '@wanwu-v2/contracts/textbook';
-import {backgroundMeeting} from '@wanwu-v2/sound-rules/background';
 import {workSummary} from '@wanwu-v2/sound-rules/textbook-match';
 import {suggestVariations} from '@wanwu-v2/sound-rules/textbook-variation';
-import {timedEvents} from '../../../shared/creation/arrangementTiming';
-import {textbookTalk} from '../../../shared/inspiration/talk';
 import {services} from '../../../app/services';
+import type {TalkPolisher} from '../../../shared/talk/polisher';
 import type {ComposeRepository} from '../services/composeRepository';
 import {composeReducer,initialCompose,isShelved,shelfEntry} from './composeState';
 import type {ComposeNoticeKey} from './composeState';
-import {findDiscoveries} from './discoveries';
 import {scoreLayout} from './scoreLayout';
 import {usePiecePlayback} from './usePiecePlayback';
+import {useTalk} from './useTalk';
 
 /** 万物成曲: listen to the work as a piece, set its length, inspiration and background, then put it on the shelf.
  *  The playback clock lives in usePiecePlayback and the background layer (shared with 万物声场) in useBackgroundLayer. */
-export function useCompose(repository:ComposeRepository=services.composeRepository,backgrounds:BackgroundLibrary=services.backgroundLibrary,inspirations:InspirationCatalog=services.inspirationCatalog,generator:BackgroundGenerator=services.backgroundGenerator){
+export function useCompose(repository:ComposeRepository=services.composeRepository,backgrounds:BackgroundLibrary=services.backgroundLibrary,inspirations:InspirationCatalog=services.inspirationCatalog,generator:BackgroundGenerator=services.backgroundGenerator,
+ polisher:TalkPolisher=services.talkPolisher,teaching:TeachingMusicService=services.teachingMusic){
  const [state,dispatch]=useReducer(composeReducer,initialCompose);
  const [shelfCount,setShelfCount]=useState(0);
  const [instruments,setInstruments]=useState<readonly Instrument[]>([]);
  const [comingInstruments,setComing]=useState<readonly string[]>([]);
- const [entries,setEntries]=useState<readonly TextbookTrack[]>([]);
  const latest=useRef(state);latest.current=state;
  const notify=useCallback((key:ComposeNoticeKey,tone:'info'|'error'='error')=>dispatch({type:'notice',notice:{tone,key}}),[]);
 
  useEffect(()=>{
   let live=true;
-  void Promise.all([repository.load(),backgrounds.list(),inspirations.list()]).then(([current,library,catalogue])=>{
+  void Promise.all([repository.load(),backgrounds.list()]).then(([current,library])=>{
    if(!live)return;
-   setInstruments(library.instruments);setComing(library.coming);setEntries(catalogue.entries);setShelfCount(current.shelfCount);
+   setInstruments(library.instruments);setComing(library.coming);setShelfCount(current.shelfCount);
    dispatch({type:'loaded',arrangement:current.arrangement,settings:current.settings,shelved:current.shelved});
   });
   return()=>{live=false;};
- },[repository,backgrounds,inspirations]);
+ },[repository,backgrounds]);
 
  // Length changes go back to the same work 万物声场 edits; an untouched example is not stored.
  useEffect(()=>{
@@ -53,17 +51,17 @@ export function useCompose(repository:ComposeRepository=services.composeReposito
  },[state.arrangement,repository]);
  useEffect(()=>{if(latest.current.arrangement)void repository.saveSettings(state.settings);},[state.settings,repository]);
 
- // ----- derived: score, background, discoveries -----
+ // ----- derived: score, background, talk -----
  const layout=useMemo(()=>state.arrangement?scoreLayout(state.arrangement):null,[state.arrangement]);
+ // 课本灵感: the same songs and 帮我找找 as 万物声场 (shared/inspiration).
+ const {entries,matches,teachingOpen}=useInspirationCatalog(state.arrangement,inspirations,teaching);
  const music=useBackgroundLayer(state.settings,instruments,entries);
  /** 帮我找找: the textbook songs most like this arrangement (local rules). */
- const matches=useMemo(()=>inspirationMatches(state.arrangement,entries),[state.arrangement,entries]);
  /** What the background is made of right now (mood colour, borrowed rhythm), for the card. */
  const backgroundPlan=useMemo(()=>state.arrangement?music.plan(state.arrangement):null,
  // The plan only changes with the arrangement and what the background borrows.
  [state.arrangement,music.key]);
- const discoveries=useMemo(()=>state.arrangement?findDiscoveries(state.arrangement):[],[state.arrangement]);
- // ----- 课本: the shapes offered for the chosen song, and the local-template talk about it -----
+ // ----- 课本: the shapes offered for the chosen song -----
  const inspiration=state.settings.inspiration;
  const variations=useMemo(()=>{
   const summary=state.arrangement&&workSummary(state.arrangement);
@@ -72,12 +70,8 @@ export function useCompose(repository:ComposeRepository=services.composeReposito
   const chosen=inspiration.variation??'original';
   return offered.includes(chosen)?offered:[...offered,chosen];
  },[state.arrangement,inspiration,music.track]);
- const talk=useMemo(()=>{
-  const arrangement=state.arrangement;
-  if(!arrangement||!music.track||inspiration.kind!=='textbook'||!backgroundPlan||!arrangement.events.length)return null;
-  const timed=timedEvents(arrangement),meeting=backgroundMeeting(backgroundPlan,timed.map(({start,end})=>({start,end})));
-  return textbookTalk(music.track,inspiration.variation??'original',meeting,meeting.example===null?null:timed[meeting.example]?.unit.name??null);
- },[state.arrangement,music.track,inspiration,backgroundPlan]);
+ /** 音乐小发现 and 课本讲解: corpus sentences at once, an AI rewording only where it passes the checks. */
+ const talk=useTalk(state.arrangement,music.track,inspiration,backgroundPlan,polisher);
  /** AI background on top of the local one: asked in the background, used only when the child switches to it. */
  const ai=useAiBackground(state.arrangement,state.settings,entries,music,generator);
  // When an AI background comes back, the squirrel offers it; the child decides.
@@ -105,7 +99,7 @@ export function useCompose(repository:ComposeRepository=services.composeReposito
  const saveWork=async(title:string)=>{
   const current=latest.current;
   if(!canSave())return false;
-  const work=shelfEntry(current,title,new Date(),{background:ai.source,rules:{...RULE_VERSIONS}});
+  const work=shelfEntry(current,title,new Date(),{background:ai.source,prompt:ai.prompt,rules:{...RULE_VERSIONS}});
   if(!work)return false;
   const result=await repository.saveWork(work);
   if(result.status==='failed'){notify('save-failed');return false;}
@@ -117,7 +111,7 @@ export function useCompose(repository:ComposeRepository=services.composeReposito
  const startNew=async()=>{playback.pause();await repository.startNew();};
 
  return {
-  state,layout,discoveries,instruments,comingInstruments,chosen:music.chosen,parts:music.parts,entries,entry:music.track,matches,backgroundPlan,
+  state,layout,instruments,comingInstruments,chosen:music.chosen,parts:music.parts,entries,entry:music.track,matches,teachingOpen,backgroundPlan,
   playing:playback.playing,preparing:playback.preparing,ended:playback.ended,
   /** The one playback time (seconds) the playhead, progress bar and highlights read. */
   now:playback.now,total:playback.total,sounding:playback.sounding,
@@ -126,6 +120,7 @@ export function useCompose(repository:ComposeRepository=services.composeReposito
   ai:ai.state,aiSource:ai.source,usingAi:ai.using,
   togglePlay:playback.togglePlay,restart:playback.restart,playFrom:playback.playFrom,scrubTo:playback.scrubTo,endScrub:playback.endScrub,
   setSpan,setInspiration,variations,talk,
+  /** A shape: the squirrel invites the child to press 播放 and find what changed. */
   setVariation:(variation:TextbookVariation)=>dispatch({type:'variation',variation}),
   setBackgroundEnabled:(enabled:boolean)=>dispatch({type:'background-enabled',enabled}),
   setBackgroundVolume:(volume:number)=>dispatch({type:'background-volume',volume}),

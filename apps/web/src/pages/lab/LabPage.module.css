@@ -1,6 +1,7 @@
 /* 调音台: a plain two-column workbench (sound on the left, rule sliders on the right); a developer tool, not a child page. */
 .page{min-height:100vh;min-height:100dvh;padding:20px 24px 40px;background:var(--wk-bg,#f7f8f4);color:var(--wk-ink,#252525)}
-.header h1{margin:0;font-size:var(--font-page-title-fit);font-weight:800}
+.header h1{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin:0;font-size:var(--font-page-title-fit);font-weight:800}
+.header h1 a{font-size:var(--font-small);font-weight:700;color:#4a6a12}
 .header p{margin:6px 0 16px;font-size:var(--font-small);color:var(--wk-muted,#6d756a)}
 .columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
 .panel{min-width:0;padding:16px 18px;border-radius:20px;background:#fff;box-shadow:0 4px 18px #26301a12}

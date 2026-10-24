@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useReducer,useRef,useState,useSyncExternalStore} from 'react';
-import {SOUND_SOURCE_MAX_MS,cleanSourceText,missingProvenance} from '@wanwu-v2/contracts/sound';
+import {SOUND_SOURCE_MAX_MS,cleanSourceText,missingProvenance,normalizeSoundName} from '@wanwu-v2/contracts/sound';
 import type {SoundDimension,SoundSource,SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {audioSupported} from '../../../shared/audio/audioContext';
 import {unchangedBy} from '@wanwu-v2/sound-rules/shaping';
@@ -10,10 +10,11 @@ import {EXAMPLE_TIMEOUT_MS,exampleSourceUrl} from '../../../shared/creation/exam
 import {newId} from '../../../shared/creation/ids';
 import {FILE_MAX_BYTES,birthCopy} from '../config/copy';
 import {sessionArchive} from '../../../shared/creation/sourceArchive';
-import {libraryGroups} from '../services/soundLibrary';
+import {exampleLibraryItem,libraryGroups} from '../services/soundLibrary';
+import type {LibraryItem} from '../services/soundLibrary';
+import type {SoundLibraryService} from '../../../shared/creation/soundLibrary';
 import {services} from '../../../app/services';
 import type {SoundHint,SoundHintProvider} from '../services/soundHints';
-import {exampleItems} from '../config/examples';
 import {baseName,describeExcerpt,describeLocal} from './localSource';
 import type {Notify} from './localSource';
 import {editingSoundBirth,finishCheck,initialSoundBirth,soundBirthReducer,toSoundUnitDraft} from './soundBirthState';
@@ -32,11 +33,15 @@ export type EditingSound={unit:SoundUnitDraft;source:SoundSource};
 
 /** 声音诞生: bring a sound in (library, file, recording), shape it with the five choices, check its card, finish.
  *  Recording, trimming, library loading and the shaped preview live in their own hooks; this one ties them together. */
-export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,source:SoundSource)=>FinishResult,hints:SoundHintProvider=services.soundHints,editing:EditingSound|null=null){
+export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,source:SoundSource)=>FinishResult,hints:SoundHintProvider=services.soundHints,editing:EditingSound|null=null,
+ sounds:SoundLibraryService=services.soundLibrary){
  const [state,dispatch]=useReducer(soundBirthReducer,null,()=>editing?editingSoundBirth(editing.unit,editing.source):initialSoundBirth(markerIndex));
  /** While the child keeps the same source, 做好了 updates the sound being edited; a new source makes a new sound. */
  const editTarget=useRef(editing&&{unitId:editing.unit.id,sourceId:editing.source.id,markerIndex:editing.unit.markerIndex});
  const local=useSyncExternalStore(sessionArchive.subscribe,sessionArchive.list);
+ // The library's examples come through the shared port (the same list 万物声场 offers).
+ const [examples,setExamples]=useState<readonly LibraryItem[]>([]);
+ useEffect(()=>{let live=true;void sounds.list().then(list=>{if(live)setExamples(list.examples.map(exampleLibraryItem));});return()=>{live=false;};},[sounds]);
  const [playing,setPlaying]=useState<string|null>(null);
  const [progress,setProgress]=useState(0);
  const [blocked,setBlocked]=useState(false);
@@ -140,15 +145,17 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
   if(same)setHint({text:birthCopy.unchanged(dimension,value,same),origin:'preset',key:`${dimension}:${value}:same`});
   // Otherwise ask the guide for an association; a newer choice cancels an older request.
   const controller=new AbortController();hintRequest.current=controller;
-  if(!same)void hints.hint({dimension,value,shape:{...latest.current.shape,[dimension]:value},sourceLabel:latest.current.source?.label??null},controller.signal)
+  if(!same)void hints.hint({dimension,value,shape:{...latest.current.shape,[dimension]:value},kind:analysisNow()?.kind??null},controller.signal)
    .then(result=>{if(result&&!controller.signal.aborted)setHint({...result,key:`${dimension}:${value}`});}).catch(()=>{});
   if(!latest.current.source)return notify('editor',birthCopy.noSoundYet,'info');
   void preview.play({...latest.current.shape,[dimension]:value},'current',true);
  };
  /** Take a choice back: that dimension returns to the original, and the result plays so the change can be heard. */
  const clear=(dimension:SoundDimension)=>{
+  const was=latest.current.shape[dimension];
   dispatch({type:'clear',dimension});setBlocked(false);setLastChosen(dimension);
-  hintRequest.current?.abort();setHint(null);
+  hintRequest.current?.abort();
+  setHint(was?{text:birthCopy.cleared(dimension,was),origin:'preset',key:`${dimension}:${was}:cleared`}:null);
   if(!latest.current.source)return;
   const shape={...latest.current.shape};delete shape[dimension];
   void preview.play(shape,'current',true);
@@ -186,7 +193,7 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
  const displayBuffer=shown==='current'&&currentBuffer?currentBuffer:sourceBuffer;
  const showingCurrent=!!currentBuffer&&displayBuffer===currentBuffer;
  return {
-  state,dispatch,playing,loadingId:library.loadingId,blocked,lastChosen,hint,local,groups:useMemo(()=>libraryGroups(exampleItems,local),[local]),
+  state,dispatch,playing,loadingId:library.loadingId,blocked,lastChosen,hint,local,groups:useMemo(()=>libraryGroups(examples,local),[examples,local]),
   wave:{buffer:displayBuffer,original:sourceBuffer??null,target:showingCurrent?'current' as const:'original' as const,progress:playing===(showingCurrent?'current':'original')?progress:0},
   record:{phase:recording.phase,ms:recording.ms,take:recording.take?.buffer??null,progress:playing==='take'?progress:0},
   trim:trim&&{buffer:trim.buffer,label:trim.label,range:trim.range,playing:playing==='trim',progress:playing==='trim'?progress:0},
@@ -195,6 +202,12 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
   previewItem:library.preview,pickItem:library.pick,chooseFile,openRecord,startRecording:recording.start,stopRecording:recording.stop,
   listenTake:recording.listen,useTake:recording.use,closeDialog,
   playCompare:preview.playCompare,playShown:preview.playShown,choose,clear,updateSource,setCardPhoto,finish,
+  /** A new name: the sound marker says it back. */
+  rename:(name:string)=>{
+   const before=latest.current.name;dispatch({type:'rename',name});
+   const after=normalizeSoundName(name,latest.current.source?.label??'');
+   if(after!==before)setHint({text:birthCopy.bubble.renamed(after),origin:'preset',key:`rename:${after}`});
+  },
   confirmCard:()=>{
    if(latest.current.source&&missingProvenance(latest.current.source).length){notify('info',birthCopy.needProvenance,'info');return;}
    dispatch({type:'card',confirmed:true});

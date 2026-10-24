@@ -24,4 +24,3 @@ export const media={
  'sheet-narrow':'(max-width:600px)',
  'reduced-motion':'(prefers-reduced-motion:reduce)',
 } as const;
-export type ScreenTier=keyof typeof media;

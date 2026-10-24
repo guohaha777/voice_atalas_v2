@@ -69,8 +69,9 @@ export function useAiBackground(arrangement:Arrangement|null,settings:ComposeSet
   return render;
  };
  const source:BackgroundSource=using&&result?result.source:'local-rules';
- return {state,using,source,buffer,
+ /** The prompt version behind the background playing now (null for the local one), kept with a saved piece. */
+ const prompt=using&&result?result.promptVersion:null;
+ return {state,using,source,prompt,buffer,
   /** Switch between the AI background (when one is ready) and the local one. */
   toggle:()=>{if(result)setUsing(current=>!current);}};
 }
-export type AiBackground=ReturnType<typeof useAiBackground>;

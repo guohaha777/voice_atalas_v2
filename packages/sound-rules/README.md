@@ -80,6 +80,7 @@
 | 好奇 | 多利亚调式 | i–IV–i–IV | 88 / 3 | 每拍 |
 
 - **节奏跟课本**：选了课本歌曲，就用它的速度、拍子，旋律按它的节奏型 `rhythmCell` 走。心情和课本冲突时，心情管色彩、课本管节奏。只借节奏和气质，不照搬旋律。
+- **换几种样子**（`variations`，算法 `shapeOf` 在 `src/textbookVariation.ts`）：压短 = 节奏型每个音乘 `squeezeFactor`（0.5，快一倍）；慢一倍 = 乘 `stretchFactor`（2）；晚半拍 = 晚 `offsetBeats` 拍进来；唱高一点 / 唱低一点 = 旋律升 / 降 `registerSemitones`（12，一个八度）。只改背景旋律，和弦、低音和孩子的声音不变。本地背景和小松鼠说的节奏变化（「嗒— 嗒」变成「嗒 嘀」）读的是同一个函数。
 - **调式**（`modes.*`）：`scale` 是 7 个音（定和弦），`melody` 是旋律可用的音（五声为主，孩子容易接受）。
 - **和弦和低音一直都在**；**旋律只在空档里**：孩子的声音前后各留 `melody.marginSeconds`，空档至少 `melody.minGapBeats` 拍才进来，在音区 `liftSemitones` 起 `rangeSemitones` 之内小步走（每步不超过 `leapSteps`），重拍和乐句最后一个音落在和弦音上。
 - **节奏声部**（`rhythm.two/three/four`）：每拍一下，按拍子分强弱；重拍再加 `accentBoost × 心情的 accent`。只有选了小鼓这类乐器才听得到。

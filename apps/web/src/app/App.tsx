@@ -25,6 +25,7 @@ const WorksPage=lazy(()=>loadWorks().then(module=>({default:module.WorksPage})))
 // the page out entirely.
 const LAB_ENABLED=import.meta.env.DEV||import.meta.env.VITE_ENABLE_LAB==='1';
 const LabPage=LAB_ENABLED?lazy(()=>import('../pages/lab/LabPage').then(module=>({default:module.LabPage}))):null;
+const PromptLabPage=LAB_ENABLED?lazy(()=>import('../pages/lab/PromptLabPage').then(module=>({default:module.PromptLabPage}))):null;
 // Prefetch 声音诞生 before the home → birth crossfade; fetch its code once the home page and its opening have had the network to themselves.
 const birthPrefetchDelayMs=3000;
 /** The next step's code waits a little longer than the current page's own artwork and sounds. */
@@ -36,7 +37,7 @@ const routeFor=(path:string):Route=>parseRoute(path);
 export function App(){
  const [opened,navigate]=useRoute();
  // Without the lab in this build, its address is just the home page.
- const route:Route=opened.page==='lab'&&!LabPage?{page:'home'}:opened;
+ const route:Route=(opened.page==='lab'||opened.page==='lab-prompts')&&!LAB_ENABLED?{page:'home'}:opened;
  const transition=useHomeBirthTransition(route.page,()=>navigate({page:'sound-birth'}));
  const [pending,setPending]=useState<HomeDestination|null>(null);
  /** 返回声音诞生 from a work page goes on editing the last sound; from home, or 做一个新声音 (`/create?new`), starts fresh. */
@@ -76,6 +77,7 @@ export function App(){
    <ComposePage onNavigate={go}/>
   </Suspense>;
   if(route.page==='lab'&&LabPage)return <Suspense fallback={<PageFallback current={null}/>}><LabPage/></Suspense>;
+  if(route.page==='lab-prompts'&&PromptLabPage)return <Suspense fallback={<PageFallback current={null}/>}><PromptLabPage/></Suspense>;
   if(route.page==='works')return <Suspense fallback={<PageFallback current={null}/>}>
    <WorksPage onNavigate={go}/>
   </Suspense>;

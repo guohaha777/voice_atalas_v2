@@ -9,11 +9,13 @@ import {trackRhythm} from './catalog';
 import {inspirationCopy as copy} from './copy';
 import type {InspirationMatch} from './matches';
 import {renderRhythmPreview} from './rhythmPreview';
+import {openingTab} from './tabs';
+import type {InspirationTab} from './tabs';
 import {teachingMusic} from './teachingMusic';
 import type {LocalTeachingMusic,PickResult} from './teachingMusic';
 import styles from './InspirationDialog.module.css';
 
-export type InspirationTab='match'|'examples'|'upload';
+export type {InspirationTab} from './tabs';
 
 /**
  * One thing sounds at a time in the dialog: an example rhythm (rendered in the browser) or the picked teaching music
@@ -66,8 +68,12 @@ function SongRow({entry,note,value,listening,onChange,onClose}:{entry:TextbookTr
  * teaching music on this device. Used in 万物声场 (before or while arranging) and 万物成曲. Picking teaching music keeps
  * it on this device; upload, analysis and generation are not open yet.
  */
-export function InspirationDialog({value,entries,matches,initialTab,onChange,onClose}:{value:Inspiration;entries:readonly TextbookTrack[];matches:readonly InspirationMatch[];initialTab?:InspirationTab;onChange:(next:Inspiration)=>void;onClose:()=>void}){
- const [tab,setTab]=useState<InspirationTab>(initialTab??(value.kind==='teaching-music'?'upload':'examples'));
+export function InspirationDialog({value,entries,matches,initialTab,teachingOpen=false,onChange,onClose}:{value:Inspiration;entries:readonly TextbookTrack[];matches:readonly InspirationMatch[];
+ /** A tab the page asks for (a 帮我找找 button); otherwise the shared opening rule (./tabs.ts). */
+ initialTab?:InspirationTab;
+ /** Whether teaching music can be analysed (the server is connected); until then the tab says it is not open. */
+ teachingOpen?:boolean;onChange:(next:Inspiration)=>void;onClose:()=>void}){
+ const [tab,setTab]=useState<InspirationTab>(initialTab??openingTab(value,matches.length>0));
  const listening=useListening();
  const row=(entry:TextbookTrack,note?:string)=><SongRow key={entry.id} entry={entry} note={note} value={value} listening={listening} onChange={onChange} onClose={onClose}/>;
  return <WorkSheet title={copy.title} description={copy.description} className={styles.songSheet} onClose={onClose}>
@@ -84,7 +90,7 @@ export function InspirationDialog({value,entries,matches,initialTab,onChange,onC
    </>:tab==='examples'?<>
     <p className={styles.note}><Glyph name="lock"/>{copy.catalogueNote}</p>
     <ul className={styles.entries}>{entries.map(entry=>row(entry))}</ul>
-   </>:<TeachingMusicPanel value={value} onChange={onChange} listening={listening}/>}
+   </>:<TeachingMusicPanel value={value} open={teachingOpen} onChange={onChange} listening={listening}/>}
   </div>
   <div className={sheetStyles.actions}>
    <button type="button" className={sheetStyles.secondary} onClick={()=>{onChange({kind:'none'});onClose();}}>{copy.none}</button>
@@ -93,7 +99,7 @@ export function InspirationDialog({value,entries,matches,initialTab,onChange,onC
  </WorkSheet>;
 }
 
-function TeachingMusicPanel({value,onChange,listening}:{value:Inspiration;onChange:(next:Inspiration)=>void;listening:Listening}){
+function TeachingMusicPanel({value,open,onChange,listening}:{value:Inspiration;open:boolean;onChange:(next:Inspiration)=>void;listening:Listening}){
  const current=value.kind==='teaching-music'?teachingMusic.get(value.musicId):null;
  const [music,setMusic]=useState<LocalTeachingMusic|null>(current);
  const [error,setError]=useState<Exclude<PickResult['status'],'picked'>|null>(null);
@@ -113,15 +119,11 @@ function TeachingMusicPanel({value,onChange,listening}:{value:Inspiration;onChan
   {music?<button type="button" className={styles.music} aria-pressed={sounding} data-using={value.kind==='teaching-music'&&value.musicId===music.id||undefined}
    aria-label={`${sounding?copy.stopListen:copy.listen}「${music.name}」`} onClick={()=>listening.music(music)}>
    <span className={styles.musicIcon}><PaperIcon name="note" tone="lime"/></span>
-   <span className={styles.entryText}><b>{music.name}</b><small>{copy.upload.picked(music.durationMs)} · {copy.upload.local}</small></span>
+   <span className={styles.entryText}><b>{music.name}</b><small>{copy.upload.picked(music.durationMs)}</small></span>
    <span className={styles.listen} aria-hidden="true"><Glyph name={sounding?'stop':'play'}/>{sounding?copy.upload.stop:copy.upload.listen}</span>
   </button>:<p className={styles.hint}>{copy.upload.hint}</p>}
   <button type="button" className={styles.pick} onClick={()=>input.current?.click()}><Glyph name="upload"/>{music?copy.upload.repick:copy.upload.pick}</button>
   {error&&<p className={styles.error} role="alert">{copy.upload.errors[error]}</p>}
-  <div className={styles.flow}>
-   <b>{copy.upload.flowTitle}</b>
-   <ol>{copy.upload.flow.map(step=><li key={step}>{step}</li>)}</ol>
-   <p><Glyph name="lock"/>{copy.upload.off}</p>
-  </div>
+  {!open&&<p className={styles.note}><Glyph name="lock"/>{copy.upload.off}</p>}
  </div>;
 }

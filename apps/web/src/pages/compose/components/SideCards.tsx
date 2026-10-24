@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import type {CSSProperties} from 'react';
-import {backgroundCopy} from '../../../shared/background/copy';
 import {inspirationCopy} from '../../../shared/inspiration/copy';
 import {variationNames} from '../../../shared/inspiration/talk';
 import type {InspirationTab} from '../../../shared/inspiration/InspirationDialog';
@@ -41,7 +40,7 @@ export function InspirationCard({compose,onOpen}:{compose:Compose;onOpen:(tab:In
  const {inspiration,background}=compose.state.settings;
  const lead=inspiration.kind==='none'?composeCopy.inspirationLead
   :inspirationCopy.summary(inspiration,compose.entries)+'。'+(inspiration.kind==='teaching-music'?composeCopy.inspirationTeachingWait:background.enabled?'':composeCopy.inspirationBackgroundOff);
- return <section className={styles.card} aria-labelledby="inspiration-title">
+ return <section className={`${styles.card} ${styles.fit}`} aria-labelledby="inspiration-title">
   <h3 id="inspiration-title" className={styles.cardTitle}><Badge icon="book" tone="pink"/>{composeCopy.inspirationTitle}<small>{composeCopy.inspirationOptional}</small></h3>
   <p className={styles.cardLead}>{lead}</p>
   {/* 换几种样子: as it is, or two shapes chosen for this arrangement; the squirrel says what each one does. */}
@@ -60,19 +59,17 @@ export function InspirationCard({compose,onOpen}:{compose:Compose;onOpen:(tab:In
 }
 
 /** 背景音乐: its own layer under the child's sounds — on / off, who plays it (any instruments, or none = as generated), how
- *  loud. Only controls here: what the background follows and who plays what is said by the squirrel. */
+ *  loud, and an AI chip once an AI background is ready. Only controls here: the squirrel says what each one did. */
 export function BackgroundCard({compose}:{compose:Compose}){
  const {background}=compose.state.settings;
  const chosen=new Set(compose.chosen.map(item=>item.id));
- const ai=compose.ai,aiReady=ai.status==='ready';
+ const aiReady=compose.ai.status==='ready';
  return <section className={styles.card} aria-labelledby="background-title" data-off={!background.enabled||undefined}>
   <div className={styles.cardTop}>
    <h3 id="background-title" className={styles.cardTitle}><Badge icon="note" tone="lime"/>{composeCopy.backgroundTitle}
-    {/* One tag: which background plays now (本地生成 / AI 写音符 / AI 生成). It breathes while AI is asked; once an AI
-        background is ready, a tap switches between it and the local one; otherwise the squirrel says why there is none. */}
-    <button type="button" className={styles.sourceTag} data-state={ai.status} aria-pressed={aiReady?compose.usingAi:undefined}
-     aria-label={composeCopy.sourceLabel(backgroundCopy.source[compose.aiSource],aiReady?backgroundCopy.source[compose.usingAi?'local-rules':ai.source]:null)}
-     onClick={compose.tapAi}>{backgroundCopy.source[compose.aiSource]}</button>
+    {/* Shown only once an AI background is ready: a tap switches between it and the first one (the child decides). */}
+    {aiReady&&<button type="button" className={styles.sourceTag} aria-pressed={compose.usingAi}
+     aria-label={composeCopy.aiLabel(compose.usingAi)} onClick={compose.tapAi}>{composeCopy.aiTag}</button>}
    </h3>
    <button type="button" role="switch" aria-checked={background.enabled} aria-label={composeCopy.backgroundToggle} className={styles.switch}
     onClick={()=>compose.setBackgroundEnabled(!background.enabled)}>

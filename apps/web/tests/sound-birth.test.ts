@@ -6,7 +6,7 @@ import {describeShape,editingSoundBirth,finishCheck,initialSoundBirth,remainingD
 import {WorkSession} from '../src/shared/creation/workSession.ts';
 import {SessionSourceArchive} from '../src/shared/creation/sourceArchive.ts';
 import {libraryGroups} from '../src/pages/sound-birth/services/soundLibrary.ts';
-import {presetHintProvider} from '../src/pages/sound-birth/services/soundHints.ts';
+import {corpusHintProvider} from '../src/pages/sound-birth/services/soundHints.ts';
 import {computePeaks} from '../src/shared/audio/peaks.ts';
 import {exampleSounds,exampleSourceUrl} from '../src/shared/creation/exampleSounds.ts';
 import {describeExcerpt} from '../src/pages/sound-birth/model/localSource.ts';
@@ -161,13 +161,17 @@ test('a local card can only be confirmed once its info is traceable; examples st
  assert.equal(soundBirthReducer(state,{type:'card',confirmed:false}).cardConfirmed,false);
  assert.equal(soundBirthReducer(state,ready({...recording,id:'recording:2'})).cardConfirmed,false);
 });
-test('the guide has a preset association for every choice and reports its origin',async()=>{
+test('the guide has a corpus association for every choice; this kind of sound first, a repeat says the next line',async()=>{
+ const hints=corpusHintProvider();
  for(const dimension of SOUND_DIMENSIONS)for(const value of SOUND_CHOICES[dimension]){
-  const hint=await presetHintProvider.hint({dimension,value,shape:{},sourceLabel:null});
+  const hint=await hints.hint({dimension,value,shape:{},kind:null});
   assert.ok(hint&&hint.text.length>4,`${dimension}:${value}`);
   assert.equal(hint.origin,'preset');
  }
- assert.equal(await presetHintProvider.hint({dimension:'pitch',value:'sky',shape:{},sourceLabel:null}),null);
+ assert.equal(await hints.hint({dimension:'pitch',value:'sky',shape:{},kind:null}),null);
+ const fresh=corpusHintProvider(),first=await fresh.hint({dimension:'pattern',value:'repeat',shape:{},kind:'texture'});
+ assert.match(first!.text,/一涌一退/);
+ assert.notEqual((await fresh.hint({dimension:'pattern',value:'repeat',shape:{},kind:'texture'}))!.text,first!.text);
 });
 
 test('the sound library lists every recipe sound as a whole recording, with credit and valid presets',()=>{

@@ -5,7 +5,7 @@ import {ARRANGEMENT_CONTRACT_VERSION,DEFAULT_ROWS,DEFAULT_SPAN_SECONDS} from '@w
 import type {Arrangement,SourceClip} from '@wanwu-v2/contracts/arrangement';
 import {SOUND_CONTRACT_VERSION} from '@wanwu-v2/contracts/sound';
 import type {SoundUnitDraft} from '@wanwu-v2/contracts/sound';
-import {exampleSound,exampleSounds,exampleSourceId} from './exampleSounds.ts';
+import {exampleSound,exampleSourceId} from './exampleSounds.ts';
 
 const PRESET_DATE='2026-10-22T00:00:00.000Z';
 
@@ -17,7 +17,6 @@ export function exampleUnit(sound:string,markerIndex:number):SoundUnitDraft{
  return {version:SOUND_CONTRACT_VERSION,id:exampleUnitId(sound),sourceId:exampleSourceId(sound),name:example.label,maker:null,markerIndex,
   shape:{...example.preset},input:'example-preset',createdAt:PRESET_DATE,analysis:example.analysis};
 }
-export const exampleUnitSounds=exampleSounds.map(sound=>sound.id);
 
 /**
  * The field a visitor sees before making a sound: three examples, one repeated, spread over the three rows. Like a

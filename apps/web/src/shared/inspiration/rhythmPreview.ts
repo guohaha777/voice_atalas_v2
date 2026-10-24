@@ -21,8 +21,10 @@ export function previewNotes({tempo,metre}:Rhythm):PreviewNote[]{
 }
 
 type OfflineConstructor=typeof OfflineAudioContext;
-export async function renderRhythmPreview(rhythm:Rhythm):Promise<AudioBuffer>{
- const notes=previewNotes(rhythm),seconds=Math.max(...notes.map(note=>note.at+note.length))+.3;
+export const renderRhythmPreview=(rhythm:Rhythm)=>renderNotes(previewNotes(rhythm));
+
+async function renderNotes(notes:readonly PreviewNote[]):Promise<AudioBuffer>{
+ const seconds=Math.max(...notes.map(note=>note.at+note.length))+.3;
  const Offline=window.OfflineAudioContext||(window as unknown as {webkitOfflineAudioContext:OfflineConstructor}).webkitOfflineAudioContext;
  const ctx=new Offline(1,Math.ceil(seconds*SAMPLE_RATE),SAMPLE_RATE);
  const master=ctx.createGain();master.gain.value=.8;master.connect(ctx.destination);

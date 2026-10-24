@@ -47,9 +47,10 @@ export const VISIBILITIES:readonly Visibility[]=['private','class','school','reg
 /**
  * How the saved piece was made: which step of the background chain made the background the child kept, and the
  * version of every rule file. The browser only previews; the shelf's and a share's audio is mixed by the server from
- * the arrangement with these same rules, so an old work is mixed again the way it was made.
+ * the arrangement with these same rules, so an old work is mixed again the way it was made. `prompt` is the version of
+ * the prompt that made an AI background (from its result); null for the local one, which no model touched.
  */
-export type Rendering={background:BackgroundSource;rules:RuleVersions};
+export type Rendering={background:BackgroundSource;prompt:string|null;rules:RuleVersions};
 
 export const WORK_TITLE_MAX=16;
 export type SavedWork={
@@ -89,7 +90,8 @@ export function parseComposeSettings(value:unknown):ComposeSettings|null{
 export function isRendering(value:unknown):value is Rendering{
  if(!value||typeof value!=='object')return false;
  const raw=value as Record<string,unknown>,rules=raw.rules as Record<string,unknown>|null;
- return BACKGROUND_SOURCES.includes(raw.background as BackgroundSource)&&!!rules&&typeof rules==='object'
+ return BACKGROUND_SOURCES.includes(raw.background as BackgroundSource)&&(raw.background==='local-rules'?raw.prompt===null:nonEmpty(raw.prompt))
+  &&!!rules&&typeof rules==='object'
   &&['analysis','shaping','background','mix'].every(key=>nonEmpty(rules[key]));
 }
 

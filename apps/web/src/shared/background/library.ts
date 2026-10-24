@@ -1,6 +1,6 @@
 // Instrument library port, shared by 万物声场 (listen while arranging) and 万物成曲 (choose instruments); the
 // implementation is chosen in app/services.ts (today the browser-synthesised examples in mocks/). The background has three
-// steps of a chain (see docs/development/compose-acceptance.md): AI audio → AI notes → local notes → only the child's
+// steps of a chain (see shared/background/generator.ts): AI audio → AI notes → local notes → only the child's
 // sounds. Only the local step exists: its notes come from @wanwu-v2/sound-rules/background (rules, no model), played by
 // the chosen instruments. The AI steps are server work (shared/background/generator.ts) and not open yet.
 //

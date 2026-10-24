@@ -14,3 +14,5 @@
 - `src/work.ts` 2026-10-24 增加 `SavedWork.rendering`（`Rendering`：孩子留下的背景来源 + 各规则文件版本）与 `isRendering`：浏览器只预览，书架和分享的正式音频由后端按同一版本规则从摆放重新混音。尚无持久化数据，没有升 `work-v1`。
 - 2026-10-24：`Inspiration` 的课本选项可带 `variation`（`TextbookVariation`：原样 / 拉长 / 压短 / 错开半拍 / 换到高处 / 换到低处，`textbook.ts`），`BackgroundBrief` 同时带上 `variation`。
 
+- `src/talk.ts`（`talk-v1`，2026-10-24，作品讲解 / 课本讲解）：音乐小发现的事实 `Discovery`（由程序从摆放数出来，原在页面里，现在前后端共用）、碰一碰的种类 `MeetingKind`、讲解来源 `TalkOrigin`（`local` 语料 / `ai` 润色并通过校验）；发给模型的匿名摘要 `WorkTalkBrief`、`TextbookTalkBrief`（声音只用编号「声音1」，不带孩子起的名字，页面拿回结果后再换回名字）与模型回复的形状 `WorkTalkReply`、`TextbookTalk`，校验 `isWorkTalkBrief` / `isTextbookTalkBrief` / `isWorkTalkReply` / `isTextbookTalk`。回复的字数、用词、是否加了事实由 `@wanwu-v2/prompts/accept` 检查。
+- `src/work.ts` 2026-10-24：`Rendering` 增加 `prompt`（AI 背景用的提示词版本，取自结果的 `promptVersion`；本地背景为 `null`）。尚无持久化数据，没有升 `work-v1`。

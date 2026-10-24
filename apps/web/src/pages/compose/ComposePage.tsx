@@ -1,13 +1,14 @@
 import {useState} from 'react';
 import {flowSteps} from '../../app/navigation';
 import {backgroundCopy} from '../../shared/background/copy';
-import {songFeature} from '../../shared/inspiration/talk';
 import {longestSound,minSpan} from '../../shared/creation/arrangementTiming';
 import {FlowHeader} from '../../shared/ui/FlowHeader';
 import {Glyph} from '../../shared/ui/PaperIcon';
 import {WorkHeaderActions} from '../../shared/ui/WorkHeaderActions';
 import {useClassroom} from '../../shared/ui/classroom';
 import {WorkIntro} from '../../shared/ui/WorkIntro';
+import {shapeOf} from '@wanwu-v2/sound-rules/textbook-variation';
+import {rhythmWords} from '../../shared/inspiration/talk';
 import {composeCopy} from './config/copy';
 import {composeGuide,guideLines} from './config/guide';
 import {useCompose} from './model/useCompose';
@@ -20,23 +21,18 @@ import {ScoreCard} from './components/ScoreCard';
 import {BackgroundCard,InspirationCard,SpanCard} from './components/SideCards';
 import styles from './ComposePage.module.css';
 
-/** What the squirrel says about the background switch and instruments (the card itself holds only controls). */
+/** What the squirrel says about the background switch, volume and instruments (the card itself holds only controls). */
 function spokenBackground(compose:Compose){
- const plan=compose.backgroundPlan;
+ const plan=compose.backgroundPlan,{volume}=compose.state.settings.background;
  switch(compose.state.lastAction){
-  case 'background-on':return plan?guideLines.backgroundOn(`${backgroundCopy.source[plan.source]}，${backgroundCopy.describe(plan,compose.entry?.title??null)}`):null;
+  case 'background-on':return plan?guideLines.backgroundOn(backgroundCopy.describe(plan,compose.entry?.title??null)):null;
   case 'background-off':return guideLines.backgroundOff;
+  case 'background-volume':return guideLines.volume(volume<.3?'soft':volume>.7?'loud':'medium');
   case 'instrument':
    return compose.chosen.length?guideLines.instruments(backgroundCopy.parts(compose.parts,Object.fromEntries(compose.chosen.map(item=>[item.id,item.name])))):guideLines.instrumentsNone;
   case 'instrument-coming':return guideLines.instrumentsComing(compose.comingInstruments.join('、'));
-  case 'ai-background':{
-   const ai=compose.ai;
-   if(ai.status==='closed')return guideLines.aiClosed;
-   if(ai.status==='working')return guideLines.aiWorking;
-   if(ai.status==='unavailable')return guideLines.aiUnavailable[ai.reason];
-   return compose.usingAi?guideLines.aiOn(backgroundCopy.source[ai.source]):guideLines.aiOff;
-  }
-  case 'ai-ready':return compose.ai.status==='ready'&&!compose.usingAi?guideLines.aiReady(backgroundCopy.source[compose.ai.source]):null;
+  case 'ai-background':return compose.ai.status==='ready'?compose.usingAi?guideLines.aiOn:guideLines.aiOff:null;
+  case 'ai-ready':return compose.ai.status==='ready'&&!compose.usingAi?guideLines.aiReady:null;
   default:return null;
  }
 }
@@ -53,8 +49,13 @@ function guideText(compose:Compose){
  if(lastAction==='span')return guideLines.span(arrangement.spanSeconds);
  if(lastAction==='span-blocked'){const longest=longestSound(arrangement);if(longest)return guideLines.spanBlocked(longest.unit.name,Math.ceil(longest.seconds-1e-6),minSpan(arrangement));}
  const said=spokenBackground(compose);if(said)return said;
- if(lastAction==='inspiration')return compose.entry?guideLines.inspirationSong(songFeature(compose.entry)):guideLines.inspiration;
- if(lastAction==='variation'&&compose.talk)return guideLines.variation(compose.talk.shape);
+ if(lastAction==='inspiration')return compose.entry?guideLines.inspirationSong(compose.entry.title,compose.variations):guideLines.inspirationMusic;
+ if(lastAction==='inspiration-none')return guideLines.inspirationNone;
+ const {inspiration}=compose.state.settings;
+ if(lastAction==='variation'&&inspiration.kind==='textbook'&&compose.entry){
+  const variation=inspiration.variation??'original',cell=compose.entry.rhythmCell;
+  return guideLines.shapeTap(variation,rhythmWords(cell),rhythmWords(shapeOf(cell,variation).cell));
+ }
  if(compose.now>0)return guideLines.paused;
  if(arrangement.origin==='example')return guideLines.example;
  return guideLines.idle;
@@ -92,7 +93,7 @@ export function ComposePage({onNavigate}:{onNavigate:(path:string)=>void}){
    <FooterBar compose={compose} onSave={requestSave} onBack={()=>onNavigate('/world')} onAgain={again}/>
   </main>
   {dialog==='save'&&<SaveDialog compose={compose} onClose={()=>setDialog(null)}/>}
-  {typeof dialog==='object'&&dialog&&<InspirationDialog value={compose.state.settings.inspiration} entries={compose.entries} matches={compose.matches} initialTab={dialog.textbook} onChange={compose.setInspiration} onClose={()=>setDialog(null)}/>}
+  {typeof dialog==='object'&&dialog&&<InspirationDialog value={compose.state.settings.inspiration} entries={compose.entries} matches={compose.matches} initialTab={dialog.textbook} teachingOpen={compose.teachingOpen} onChange={compose.setInspiration} onClose={()=>setDialog(null)}/>}
   {dialog==='again'&&<AgainDialog onClose={()=>setDialog(null)} onSave={()=>setDialog(compose.canSave()?'save':null)} onDiscard={()=>void startAgain()}/>}
  </div>;
 }

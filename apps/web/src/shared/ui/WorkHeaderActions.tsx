@@ -4,7 +4,8 @@ import {WorkSheet,sheetStyles} from './WorkSheet';
 import type {Classroom} from './classroom';
 
 const copy={library:'声音库',shelf:'作品书架',classroomOn:'大屏',classroomOff:'退出大屏',classroomLabel:'课堂大屏：全屏、大字、大按钮',
- libraryTitle:'声音库在万物声场里',libraryBody:'回到万物声场，点「找更多声音」，就能加示例声音和自己做的声音。班级和公共声音库还没有开放。',
+ libraryTitle:'声音库在万物声场里',
+ libraryBody:['回到万物声场，点「找更多声音」，就能加示例声音和自己做的声音。','班级和公共声音库还没有开放。'],
  goWorld:'去万物声场',stay:'留在这里'};
 
 /**
@@ -21,7 +22,7 @@ export function WorkHeaderActions({onLibrary,onNavigate,current,classroom}:{onLi
   <button type="button" onClick={onLibrary??(()=>setLibrary(true))}><Glyph name="sounds"/><span>{copy.library}</span></button>
   <button type="button" aria-current={current==='shelf'?'page':undefined} onClick={()=>onNavigate('/works')}><Glyph name="shelf"/><span>{copy.shelf}</span></button>
   {library&&<WorkSheet title={copy.libraryTitle} onClose={()=>setLibrary(false)}>
-   <p className={sheetStyles.body}>{copy.libraryBody}</p>
+   {copy.libraryBody.map(line=><p key={line} className={sheetStyles.body}>{line}</p>)}
    <div className={sheetStyles.actions}>
     <button type="button" className={sheetStyles.secondary} onClick={()=>setLibrary(false)}>{copy.stay}</button>
     <button type="button" className={sheetStyles.primary} onClick={()=>{setLibrary(false);onNavigate('/world');}}>{copy.goWorld}</button>

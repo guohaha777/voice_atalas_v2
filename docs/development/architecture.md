@@ -14,11 +14,29 @@
 | pages/<页面> | 页面布局、页面内组件与流程状态 | 每个页面独立验收，避免在首页追加全流程 |
 | config | 图片、坐标、透明度、动画参数 | 视觉调整不改播放与开场状态逻辑 |
 | shared/ui、media、audio、markers、scene、creation、inspiration、platform | 基础组件与图标（含工作页弹窗 `WorkSheet`、顶栏入口 `WorkHeaderActions`、工作页标题行 + 向导 `WorkIntro`、心情脸 `MoodFace`）、资源加载、声音录放 / 塑形 / 排程（工作页统一 `SequencePlayer`）、声音标记、首页场景素材与工作页背景、当前作品 / 书架 / 本机来源档案 / 示例声音与示例作品 / 时间与行 / 五项与心情文案 / 本地 ID、课本灵感、设备提示 | 后续页面按需复用；页面之间不互相引用内部实现；两页以上用到的东西放这里，只保留一份 |
-| packages/contracts（`@wanwu-v2/contracts`） | 前后端共同的数据契约；已有 `sound-v1`（含声音体检结果 `SoundAnalysis`）、`arrangement-v1`、`work-v1` | 以包名引用，新增领域先写类型和校验，再加存储 |
+| packages/contracts（`@wanwu-v2/contracts`） | 前后端共同的数据契约；已有 `sound-v1`（含声音体检结果 `SoundAnalysis`）、`arrangement-v1`、`work-v1`、`textbook-v1`、`background-request-v1`、`talk-v1`（音乐小发现事实、讲解的匿名摘要与回复形状） | 以包名引用，新增领域先写类型和校验，再加存储 |
 | packages/sound-rules（`@wanwu-v2/sound-rules`） | 声音体检、五维度塑形、本地背景、混音、课本匹配：数值在 `rules/*.json`（带版本、范围校验），算法是纯函数；页面和渲染器只读这里，自己不写数值 | 音乐角色改 JSON + `npm test`；听感变化上线后另存新版本文件。说明见包内 README |
+| packages/prompts（`@wanwu-v2/prompts`） | 语料（`corpus/*.json`：向导联想、音乐小发现、课本讲解、用词规范）与提示词（`prompts/*.json`，只在服务端拼装）；回复检查 `accept.ts` 前后端共用 | 页面只引用 `corpus` / `style` / `accept`（`tests/structure.test.ts` 守着）；改文字 + `npm test`；上线后改提示词另存新版本。说明见包内 README |
 | 后端（未开发） | 身份、音源与作品、文件存储、AI 网关 | 接在仓库 / 服务端口之后，页面不直接访问云资源 |
 
 没有为了预留而实现假的服务器、数据库、账号或空 API。当前首页只使用本站静态资源，不收集个人信息，不向模型发送内容。
+
+## 升级与接入原则（2026-10-24 结构审核）
+
+1. **一份素材一个入口。** 页面要的数据都通过 `app/services.ts` 里的端口取，接后端只换这一个文件里的实现：
+   | 端口 | 谁用 | 今天的实现 |
+   | --- | --- | --- |
+   | `soundLibrary`（`shared/creation/soundLibrary.ts`） | 声音诞生的声音库、万物声场的“找更多声音 · 示例” | 随网页提供的示例录音（真实内容，不是 mock） |
+   | `inspirationCatalog`（`shared/inspiration/catalog.ts`） | 万物声场、万物成曲、作品书架 | 示例课本歌曲（mock） |
+   | `teachingMusic`（`shared/inspiration/teachingMusic.ts`） | 课本灵感的教学音乐 | 未开放 |
+   | `backgroundLibrary`、`backgroundGenerator`、`talkPolisher`、`soundHints`、`moodInterpreter` | 背景、AI 背景、讲解润色、联想、心情 | 示例乐器 / 未开放 / 语料 |
+   | 各页 `*Repository` | 作品、设置、书架 | 本次打开期间的内存（mock） |
+   页面不直接读示例声音清单或课本卡片（`apps/web/tests/structure.test.ts` 检查）。
+2. **两页以上用的逻辑只留一份，放 `shared/`。** 例：课本灵感的加载、帮我找找、弹窗先开哪一页（`shared/inspiration/useInspirationCatalog.ts`、`tabs.ts`），背景层（`shared/background/`），讲解（`shared/talk/`）。两页只留各自的布局。
+3. **数值、文字、提示词各在自己的包里。** 数值 `packages/sound-rules/rules/`，语料和提示词 `packages/prompts/`，数据格式 `packages/contracts/`；页面不写数值，不写模型指令。改动有测试校验，上线后改听感或提示词另存新版本。
+4. **只在开发时用的工具不进正式构建**（调音台、提示词台），由 `VITE_ENABLE_LAB` 控制。
+5. **非运行文件不放进项目。** 开发交接、验收和调整记录、需求原文快照、已停用功能的原件都在项目外的 `万物声谱_视觉过程稿/`（`handoff/`、`records/`、`product/`、`已停用素材/`）；项目里只留运行、构建和现行说明需要的文件。
+6. **新功能接入的顺序：** 先在 `packages/contracts` 定数据格式和校验 → 在 `shared/` 或页面 `services/` 定端口（文件头写好预留的接口路径）→ 在 `app/services.ts` 选实现（离线时如实说“未开放”，不造假成功）→ 页面只调端口。
 
 ## 首页进入声音诞生与弹窗基础层
 
@@ -42,14 +60,15 @@
 - 路由 `/world`，代码单独分包，在声音诞生页时预取。声音诞生“做好了”经 `App` 把 `SoundUnitDraft` + 来源交给 `shared/creation/workSession.ts`（本次打开期间的当前作品），再打开本页；标记编号由作品分配。
 - `pages/sound-world/` 分为 `components/`（左栏声音、声场、浮动工具、心情、找更多声音）、`model/`（纯 reducer `soundWorldState.ts`、几何换算 `fieldGeometry.ts`、拖动 `useFieldDrag.ts`、编排 hook `useSoundWorld.ts`，拆出 `useFieldSound`（声音库、单个试听、整段试听与游标）和 `useMood`（心情））、`config/`（文案、mock 示例单元与示例摆放、青蛙向导）、`services/`（`SoundWorldRepository` 端口，文件头列出预留 REST 路径；mock 在 `src/mocks/`）。
 - 数据走 `@wanwu-v2/contracts/arrangement`：事件只存 0–1 先后位置与行号（行只管错开摆放，不改变声音；默认 3 行可加到 5 行），不存像素；声音身份 `unitId` 与事件身份分开。整段试听用 `shared/audio/SequencePlayer.ts` 在同一音频时钟上排程，游标、高亮读同一时间，万物成曲可复用。
-- 详见 `docs/development/sound-world-acceptance.md`。
+- 详见项目外的 `万物声谱_视觉过程稿/records/sound-world-acceptance.md`。
 
 ## 万物成曲页与作品书架
 
-- 路由 `/compose`（在声场时预取）和 `/works`（在成曲时预取），各自分包。`pages/compose/` 分为 `components/`（曲谱卡、播放条、右栏三卡、底栏与特征面板、弹窗）、`model/`（纯 reducer `composeState.ts`、曲谱派生 `scoreLayout.ts`、音乐特征 `discoveries.ts`、编排 hook `useCompose.ts`，拆出 `usePiecePlayback`（同一时钟的播放 / 暂停 / 跳转 / 拖动））、`config/`（文案、特征讲解文案、松鼠向导）、`services/`（`ComposeRepository` 端口，文件头列出预留 REST 路径；mock 在 `src/mocks/`）。`pages/works/` 同样分层，端口 `ShelfRepository`。
+- 路由 `/compose`（在声场时预取）和 `/works`（在成曲时预取），各自分包。`pages/compose/` 分为 `components/`（曲谱卡、播放条、右栏三卡、底栏与特征面板、弹窗）、`model/`（纯 reducer `composeState.ts`、曲谱派生 `scoreLayout.ts`、编排 hook `useCompose.ts`，拆出 `usePiecePlayback`（同一时钟的播放 / 暂停 / 跳转 / 拖动）和 `useTalk`（音乐小发现与课本讲解））、`config/`（文案、松鼠向导）、`services/`（`ComposeRepository` 端口，文件头列出预留 REST 路径；mock 在 `src/mocks/`）。`pages/works/` 同样分层，端口 `ShelfRepository`。
 - **mock 统一放在 `src/mocks/`**（2026-10-24）：各页仓库、乐器库、示例课本歌曲、作品书架内存实现都在这里；`src/app/services.ts` 是唯一选择实现的地方（页面 hook 的默认参数从这里取），接后端时在这里换成服务端适配器、删掉 `mocks/` 即可。`tests/structure.test.ts` 检查除 `app/services.ts` 外没有文件引用 `mocks/`。声音库示例声音、示例摆放是给访客的真实内容，如实的离线实现（AI 未开放、预设提示、心情自己写要模型）也不算 mock。
 - 课堂大屏 `shared/ui/classroom.ts`：声场、成曲两页打开时在 `<html>` 上设 `data-classroom`，字号课堂档在 `styles/typography.css`，各组件自己的课堂规则写在各自的 CSS 里。
-- 调音台 `pages/lab/`（`/lab/sound-rules`）：只在开发环境或 `VITE_ENABLE_LAB=1` 的预览构建里打包（`app/App.tsx`），正式站没有。
+- 调音台 `pages/lab/`（`/lab/sound-rules`）和提示词台（`/lab/prompts`，2026-10-24）：只在开发环境或 `VITE_ENABLE_LAB=1` 的预览构建里打包（`app/App.tsx`），正式站没有（已核对产物里没有提示词文字）。
+- 讲解两页共用（2026-10-24）：`shared/talk/`（音乐小发现的事实 `discoveries.ts`、发给模型的匿名摘要 `briefs.ts`、讲解润色端口 `polisher.ts`（离线实现如实未开放）、语料与 AI 句子的合并 `talkView.ts`）。文字都在 `@wanwu-v2/prompts/corpus`；声音诞生的联想端口 `pages/sound-birth/services/soundHints.ts` 也读语料。
 - 背景层两页共用（2026-10-24）：`shared/background/`（示例乐器与分工、`BackgroundLibrary` 端口 + mock、从作品算规则输入、`useBackgroundLayer` 渲染缓存与音量、来源说明文案）和 `shared/audio/renderBackground.ts`（只演奏规则给的音符）。音符、结尾、让位、限幅都来自 `packages/sound-rules`。AI 背景端口 `shared/background/generator.ts`（降级链与超时，mock 未开放），成曲页 `model/useAiBackground.ts` 只在孩子选择时换上 AI 背景。
 - 课本灵感是共用模块 `shared/inspiration/`（特征模板目录端口 `InspirationCatalog` 与示例模板、帮我找找 `matches.ts`、试听合成、教学音乐本机选择与后端流程说明、`InspirationDialog`），万物声场摆放前就能选，万物成曲沿用同一个选择。模板契约是 `@wanwu-v2/contracts/textbook`。
 - 曲谱只从 `arrangement-v1` 派生，不存储。声场与成曲共用 `shared/creation/arrangementTiming.ts`（开始秒、听到的长度、整首长度、行整理、切换长度）、`exampleWork.ts`（示例单元与示例摆放）、`workSounds.ts`（音源加载与塑形缓存）。
@@ -72,7 +91,7 @@
 
 ## 需求优先顺序
 
-用户当前约定 > 最新确认首页 > `docs/product/` 两份文件。指南中的“沿用现有视觉”、十天排期、旧 Next.js 目录和已有库路径属于旧工程背景，不约束本次独立 React 工程。指南与使用流程存在缓存 / PWA 口径差异，后续功能设计前明确，不在首页迁移时悄悄实现。
+用户当前约定 > 最新确认首页 > `万物声谱_视觉过程稿/product/` 两份文件。指南中的“沿用现有视觉”、十天排期、旧 Next.js 目录和已有库路径属于旧工程背景，不约束本次独立 React 工程。指南与使用流程存在缓存 / PWA 口径差异，后续功能设计前明确，不在首页迁移时悄悄实现。
 
 ## 手绘标题资源与动画边界
 

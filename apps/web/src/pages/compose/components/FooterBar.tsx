@@ -1,7 +1,6 @@
 import {useEffect,useState} from 'react';
 import {Glyph,PaperIcon} from '../../../shared/ui/PaperIcon';
 import {composeCopy} from '../config/copy';
-import {discoveryText} from '../config/discoveryCopy';
 import type {Compose} from '../model/useCompose';
 import styles from './FooterBar.module.css';
 import {ui} from '../../../shared/ui/controls';
@@ -13,7 +12,7 @@ import {ui} from '../../../shared/ui/controls';
 export function FooterBar({compose,onSave,onBack,onAgain}:{compose:Compose;onSave:()=>void;onBack:()=>void;onAgain:()=>void}){
  const [index,setIndex]=useState(0);
  const [teaching,setTeaching]=useState(false);
- const {discoveries}=compose,discovery=discoveries.length?discoveries[index%discoveries.length]!:null;
+ const {discoveries,tryThis,textbook}=compose.talk,discovery=discoveries.length?discoveries[index%discoveries.length]!:null;
  // Esc closes the panel (dialogs handle their own Esc).
  useEffect(()=>{
   if(!teaching)return;
@@ -27,8 +26,8 @@ export function FooterBar({compose,onSave,onBack,onAgain}:{compose:Compose;onSav
     <PaperIcon name="bulb" tone="yellow"/>
    </button>
    <div>
-    <h3 id="discovery-title">{composeCopy.discoveryTitle}<small>{composeCopy.discoveryNote}</small></h3>
-    <p aria-live="polite">{discovery?composeCopy.discovery(discovery):composeCopy.notices['need-event']}</p>
+    <h3 id="discovery-title">{composeCopy.discoveryTitle}</h3>
+    <p aria-live="polite">{discovery?discovery.line:composeCopy.notices['need-event']}</p>
    </div>
    {discoveries.length>1&&<button type="button" className={styles.discoveryNext} onClick={()=>setIndex(value=>value+1)}>{composeCopy.discoveryNext}</button>}
   </section>
@@ -53,18 +52,20 @@ export function FooterBar({compose,onSave,onBack,onAgain}:{compose:Compose;onSav
    {/* Only this list scrolls (wheel, touch, or arrow keys once focused); the title row above stays in place. */}
    <ol tabIndex={0} aria-label={composeCopy.teachTitle}>
     {/* 课本讲解 first when a textbook song is chosen: feature → this shape → what happened → one thing to try. */}
-    {compose.talk&&<li className={styles.talk}>
-     <b>{composeCopy.talkTitle}<small>{composeCopy.talkSource}</small></b>
-     {(['feature','shape','meeting','task'] as const).map(part=><p key={part}><em>{composeCopy.talkParts[part]}</em>{compose.talk![part]}</p>)}
+    {textbook&&<li className={styles.talk}>
+     <b>{composeCopy.talkTitle}</b>
+     {(['feature','shape','meeting','task'] as const).map(part=><p key={part}><em>{composeCopy.talkParts[part]}</em>{textbook[part]}</p>)}
     </li>}
-    {discoveries.map((item,i)=>{
-     const text=discoveryText(item);
-     return <li key={`${item.kind}-${i}`}>
-      <b>{text.line}</b>
-      <p><em>{composeCopy.teachIdea} · {text.idea}</em>{text.explain}</p>
-      <p className={styles.teachAsk}><em>{composeCopy.teachAsk}</em>{text.ask}</p>
-     </li>;
-    })}
+    {discoveries.map((text,i)=><li key={`${text.idea}-${i}`}>
+     <b>{text.line}</b>
+     <p><em>{composeCopy.teachIdea} · {text.idea}</em>{text.explain}</p>
+     <p className={styles.teachAsk}><em>{composeCopy.teachAsk}</em>{text.ask}</p>
+    </li>)}
+    {/* One thing the class can do right away in 万物声场, then listen again. */}
+    {tryThis&&<li className={styles.talk}>
+     <b>{composeCopy.tryThisTitle}</b>
+     <p><em>{composeCopy.tryThisLead}</em>{tryThis}</p>
+    </li>}
    </ol>
   </section>}
  </div>;

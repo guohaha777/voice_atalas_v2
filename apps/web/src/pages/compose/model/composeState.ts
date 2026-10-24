@@ -11,10 +11,10 @@ import {fitSpan,spanHolds,withSpan} from '../../../shared/creation/arrangementTi
 export type ComposeNoticeKey='need-event'|'example-save'|'share-off'|'save-failed'|'load-failed'|'no-audio'|'missing-audio'|'background-failed';
 export type ComposeNotice={tone:'info'|'error';key:ComposeNoticeKey}|null;
 /** `span-blocked`: a length too short for the longest sound was asked for and refused. */
-export type ComposeLastAction='span'|'span-blocked'|'inspiration'|'saved'
+export type ComposeLastAction='span'|'span-blocked'|'inspiration'|'inspiration-none'|'saved'
  /** Background choices the squirrel explains (the card holds only controls). */
- |'background-on'|'background-off'|'instrument'|'instrument-coming'
- /** The AI background chip was tapped (switched, or asked about while AI is not open). */
+ |'background-on'|'background-off'|'background-volume'|'instrument'|'instrument-coming'
+ /** The AI chip was tapped (it is shown only while an AI background is ready). */
  |'ai-background'
  /** An AI background just came back: the squirrel offers it (it is never switched on by itself). */
  |'ai-ready'
@@ -68,7 +68,7 @@ export function composeReducer(state:ComposeState,action:ComposeAction):ComposeS
    return {...state,settings:{...state.settings,background:{...background,enabled:action.enabled}},notice:null,lastAction:action.enabled?'background-on':'background-off'};
   case 'background-volume':{
    const volume=Math.round(Math.min(1,Math.max(0,action.volume))*100)/100;
-   return volume===background.volume?state:{...state,settings:{...state.settings,background:{...background,volume}}};
+   return volume===background.volume?state:{...state,settings:{...state.settings,background:{...background,volume}},notice:null,lastAction:'background-volume'};
   }
   case 'instrument':{
    // Tap to add, tap again to take away; none at all plays the background as generated. Adding one also turns the
@@ -79,7 +79,7 @@ export function composeReducer(state:ComposeState,action:ComposeAction):ComposeS
    return {...state,settings:{...state.settings,background:{...background,instruments,enabled:has?background.enabled:true}},notice:null,lastAction:'instrument'};
   }
   case 'inspiration':
-   return {...state,settings:{...state.settings,inspiration:action.inspiration},notice:null,lastAction:action.inspiration.kind==='none'?null:'inspiration'};
+   return {...state,settings:{...state.settings,inspiration:action.inspiration},notice:null,lastAction:action.inspiration.kind==='none'?'inspiration-none':'inspiration'};
   case 'variation':{
    const inspiration=state.settings.inspiration;
    if(inspiration.kind!=='textbook')return state;

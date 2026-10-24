@@ -4,7 +4,6 @@ import type {Arrangement} from '@wanwu-v2/contracts/arrangement';
 import {flowSteps} from '../../app/navigation';
 import {backgroundCopy} from '../../shared/background/copy';
 import {moodLabels,presetMood} from '../../shared/creation/moodCopy';
-import {songFeature} from '../../shared/inspiration/talk';
 import {InspirationDialog} from '../../shared/inspiration/InspirationDialog';
 import {SoundMarker} from '../../shared/markers/SoundMarker';
 import {FlowHeader} from '../../shared/ui/FlowHeader';
@@ -35,11 +34,11 @@ function spokenChoice(world:SoundWorld){
  if(!arrangement||!plan)return null;
  const what=backgroundCopy.describe(plan,world.backgroundTrack?.title??null),mood=presetMood(arrangement.mood);
  switch(lastAction){
-  case 'background-on':return guideLines.backgroundOn(`${backgroundCopy.source[plan.source]}，${what}`);
+  case 'background-on':return guideLines.backgroundOn(what);
   case 'background-off':return guideLines.backgroundOff;
   case 'inspiration':{
    const inspiration=world.inspiration;
-   if(inspiration.kind==='textbook'&&world.backgroundTrack)return guideLines.inspirationSong(songFeature(world.backgroundTrack));
+   if(inspiration.kind==='textbook'&&world.backgroundTrack)return guideLines.inspirationSong(world.backgroundTrack.title,world.backgroundTrack.childLine);
    return inspiration.kind==='teaching-music'?guideLines.inspirationMusic:guideLines.inspirationNone;
   }
   case 'mood':
@@ -66,9 +65,11 @@ function guideText(world:SoundWorld){
  if(lastAction==='span')return guideLines.span(arrangement.spanSeconds);
  if(lastAction==='placed')return guideLines.placed;
  if(lastAction==='clipped')return guideLines.clipped;
+ if(lastAction==='moved')return guideLines.moved;
  if(selection?.kind==='event')return guideLines.eventSelected;
  if(lastAction==='removed')return guideLines.removed;
  if(lastAction==='row-added')return guideLines.rowAdded;
+ if(lastAction==='cleared')return guideLines.cleared;
  if(arrangement.origin==='example')return guideLines.example;
  if(!arrangement.events.length)return guideLines.empty;
  return guideLines.idle;
@@ -128,7 +129,7 @@ export function SoundWorldPage({onNavigate,onFinish}:{onNavigate:(path:string)=>
   {trimming&&<ClipEditor world={world} eventId={trimming} onClose={()=>setTrimming(null)}/>}
   {/* With sounds placed, it opens on 帮我找找 (the songs most like the arrangement); before that, on the song list. */}
   {inspiring&&<InspirationDialog value={world.inspiration} entries={world.inspirationEntries} matches={world.matches}
-   initialTab={world.inspiration.kind==='teaching-music'?'upload':world.inspiration.kind==='none'&&world.matches.length?'match':'examples'}
+   teachingOpen={world.teachingOpen}
    onChange={world.setInspiration} onClose={()=>setInspiring(false)}/>}
  </div>;
 }

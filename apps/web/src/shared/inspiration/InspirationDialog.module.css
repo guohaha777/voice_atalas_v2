@@ -20,7 +20,7 @@ dialog.songSheet>.panel{flex:0 1 430px;min-height:0;display:flex;flex-direction:
 /* Teaching music is not a list: it stays put, and only scrolls inside on a very short screen. */
 .panel>.upload{flex:0 1 auto;min-height:0;overflow-y:auto}
 .note{flex-wrap:wrap;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;margin:4px 0 0;font-size:var(--font-small);font-weight:600;color:var(--wk-muted)}
-.note svg,.flow p svg{width:15px;height:15px;flex-shrink:0}
+.note svg{width:15px;height:15px;flex-shrink:0}
 .entries{display:flex;flex-direction:column;gap:6px;margin:10px 0 0;padding:6px;list-style:none;border-radius:22px;background:var(--wk-field);box-shadow:var(--wk-inset)}
 .entries li,.music{min-width:0;flex-wrap:wrap;display:flex;align-items:center;gap:12px;min-height:64px;padding:6px 10px 6px 8px;border-radius:17px;background:#fff;box-shadow:0 3px 0 var(--wk-line-strong)}
 /* The song itself is the play button: a round play / stop and the title; it glows yellow while sounding. */
@@ -55,10 +55,6 @@ dialog.songSheet>.panel{flex:0 1 430px;min-height:0;display:flex;flex-direction:
 .pick svg{width:20px;height:20px}
 .pick:hover{background:var(--wk-green-soft)}
 .error{margin:0;padding:8px 14px;border-radius:12px;background:var(--wk-alert-soft);font-size:var(--font-small);font-weight:600;color:var(--wk-alert)}
-.flow{padding:12px 16px;border-radius:18px;background:var(--wk-cream);font-size:var(--font-small);line-height:1.7;color:var(--wk-text)}
-.flow b{font-weight:800}
-.flow ol{margin:4px 0 6px;padding-left:20px}
-.flow p{display:flex;align-items:center;gap:6px;margin:0;font-weight:700;color:var(--wk-sun-deep)}
 
 /* Narrow sheet content gives the title and its explanation a full row. */
 @container(max-width:300px){

@@ -12,6 +12,8 @@
 /* The column always ends level with the score: cards share the spare height and keep their last control at the bottom. */
 .card{flex:1 1 auto}
 .card>:last-child{margin-top:auto}
+/* 课本灵感 keeps its own height (text and two button rows read as one block); the other two cards take the spare. */
+.card.fit{flex-grow:0}
 .cardTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .cardTitle{min-width:0;flex-wrap:wrap;display:flex;align-items:center;gap:9px;margin:0;font-size:var(--font-control-lg);font-weight:800}
 .cardTitle small{font-size:var(--font-small);font-weight:600;color:var(--wk-muted)}
@@ -19,7 +21,7 @@
 .badge{display:inline-flex;flex-shrink:0}
 .badge svg{width:32px;height:32px;filter:drop-shadow(0 2px 2px #26301a22);transition:transform .35s var(--wk-ease)}
 .card:hover .badge svg{transform:rotate(-8deg) scale(1.08)}
-.cardLead{margin:6px 0 10px;font-size:var(--font-small);font-weight:500;line-height:1.5;color:var(--wk-muted)}
+.cardLead{margin:4px 0 10px;font-size:var(--font-small);font-weight:500;line-height:1.5;color:var(--wk-muted)}
 .spanOptions{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;min-height:60px;margin-top:10px;padding:6px;border-radius:22px;background:var(--wk-field);box-shadow:var(--wk-inset)}
 .spanOption{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;padding:4px;border:0;border-radius:17px;background:#fff;color:var(--wk-ink);box-shadow:var(--wk-key);transition:box-shadow .15s,background .25s,transform .15s var(--wk-ease)}
 .spanOption b{font-size:var(--font-subtitle);font-weight:800;font-variant-numeric:tabular-nums}
@@ -33,7 +35,9 @@
 .spanOption[aria-disabled=true]{background:var(--wk-soft);color:#b4baa9;box-shadow:none;cursor:not-allowed;transform:none}
 .spanOption[aria-disabled=true] small{color:#b4baa9}
 /* 换几种样子: three small pills above the inspiration buttons. */
-.variationRow{display:flex;gap:6px;margin:-4px 0 10px}
+/* The two button rows sit together at the bottom (8px apart); the card's spare height stays under the lead, not between them. */
+.variationRow{display:flex;gap:6px;margin:auto 0 8px}
+.variationRow+.choiceRow{margin-top:0}
 .variationRow button{flex:1 1 0;min-width:0;min-height:34px;padding:0 6px;border:0;border-radius:999px;background:var(--wk-soft);color:var(--wk-ink-soft);font-size:var(--font-small);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .2s}
 .variationRow button[aria-checked=true]{background:var(--wk-pink);color:#6b3a42;box-shadow:inset 0 0 0 2px #f0a9b4}
 .choiceRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:5px;border-radius:20px;background:var(--wk-field);box-shadow:var(--wk-inset)}
@@ -60,9 +64,8 @@
 .trackRow .coming svg{width:13px;height:13px;color:inherit}
 /* The background source tag (本地生成 today): quiet while it only says what plays; breathing while AI is asked; a lime
    outline once an AI background is ready to switch to, filled while the AI one plays. */
-.sourceTag{min-height:26px;padding:0 9px;border:0;border-radius:9px;background:var(--wk-soft);font-size:var(--font-caption);font-weight:700;color:var(--wk-muted)}
-.sourceTag[data-state=working]{animation:pulse 1.2s ease-in-out infinite}
-.sourceTag[data-state=ready]{background:#fff;color:var(--wk-on-fill);box-shadow:inset 0 0 0 2px var(--wk-lime)}
+/* The AI chip: shown only once an AI background is ready. */
+.sourceTag{min-height:26px;padding:0 9px;border:0;border-radius:9px;background:#fff;font-size:var(--font-caption);font-weight:700;color:var(--wk-on-fill);box-shadow:inset 0 0 0 2px var(--wk-lime)}
 .sourceTag[aria-pressed=true]{background:var(--wk-selected-fill);box-shadow:var(--wk-selected-lift)}
 .trackRow small{display:inline-flex;align-items:center;gap:2px;margin-left:2px;font-size:var(--font-caption);font-weight:700;color:var(--wk-muted)}
 .volume{display:flex;align-items:center;gap:10px;margin-top:8px}
@@ -71,10 +74,8 @@
 .volume input::-webkit-slider-thumb{width:22px;height:22px;margin-top:-7px}
 .card[data-off] .trackRow,.card[data-off] .volume{opacity:.5}
 .cardTop+.trackRow{margin-top:12px}
-@keyframes pulse{50%{opacity:.4}}
 @media(--reduced-motion){
  .spanOption,.choiceRow button,.trackRow button,.badge svg{transition:none}
- .sourceTag[data-state=working]{animation:none}
 }
 @media(--short){
  .card{padding:10px 14px}

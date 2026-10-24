@@ -14,6 +14,7 @@ import type {TextbookTrack,TextbookVariation} from '@wanwu-v2/contracts/textbook
 import {duckPoints,mergeSpans} from './mix.ts';
 import type {GainPoint,Span} from './mix.ts';
 import {seeded} from './random.ts';
+import {shapeOf} from './textbookVariation.ts';
 import {BACKGROUND_RULES,MIX_RULES} from './rules.ts';
 import type {BackgroundMode,BackgroundRules,MixRules} from './rules.ts';
 
@@ -91,19 +92,17 @@ export function backgroundPlan(input:BackgroundInput,rules:BackgroundRules=BACKG
  const gaps:Span[]=[];let from=0;
  for(const span of [...busy,{start:seconds,end:seconds}]){if(span.start-from>=minGapBeats*beat)gaps.push({start:from,end:span.start});from=Math.max(from,span.end);}
  // 换几种样子 moves the melody up or down, stretches or squeezes the song's rhythm cell, or starts it half a beat late.
- const variation=textbook?textbook.variation??'original':null,v=rules.variations;
- const base=tonic+liftSemitones+(variation==='higher'?v.registerSemitones:variation==='lower'?-v.registerSemitones:0),pool:number[]=[];
+ const variation=textbook?textbook.variation??'original':null;
+ const songCell=textbook?.rhythmCell.length?textbook.rhythmCell:null,shape=songCell&&variation?shapeOf(songCell,variation,rules):null;
+ const base=tonic+liftSemitones+(shape?.semitones??0),pool:number[]=[];
  for(let octave=0;octave<3;octave++)for(const step of melodySteps){const midi=base+step+12*octave;if(midi<=base+rangeSemitones)pool.push(midi);}
- const songCell=textbook?.rhythmCell.length?textbook.rhythmCell:null;
- const random=seeded(input.seed),cell=!songCell?[feel.melodyEveryBeats]
-  :variation==='stretch'?songCell.map(beats=>Math.min(4,beats*v.stretchFactor))
-  :variation==='squeeze'?songCell.map(beats=>Math.max(.25,beats*v.squeezeFactor)):songCell;
+ const random=seeded(input.seed),cell=shape?shape.cell:[feel.melodyEveryBeats];
  const chordTone=(midi:number,at:number)=>{
   const classes=new Set(triad(degreeOf(Math.floor(at/bar+1e-9))).map(note=>((note%12)+12)%12));
   return pool.reduce((best,candidate)=>classes.has(candidate%12)&&Math.abs(candidate-midi)<Math.abs(best-midi)?candidate:best,
    pool.find(candidate=>classes.has(candidate%12))??midi);
  };
- let index=Math.floor(pool.length/2),t=variation==='offset'?v.offsetBeats*beat:0,step=0;
+ let index=Math.floor(pool.length/2),t=(shape?.delayBeats??0)*beat,step=0;
  const phrase:{at:number;length:number;gap:number}[]=[];
  while(t<cadenceAt-1e-9){
   const length=cell[step%cell.length]!*beat,gap=gaps.findIndex(item=>t>=item.start-1e-9&&t+length*noteLengthPortion<=Math.min(item.end,cadenceAt)+1e-9);

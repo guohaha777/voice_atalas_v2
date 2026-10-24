@@ -10,6 +10,8 @@ dialog.sheet h2{font-weight:800}
 .note{min-height:20px;margin:16px 0 0;font-size:var(--font-small);font-weight:500;line-height:1.6;color:var(--wk-muted);text-align:center}
 /* Body text and the footer's two buttons (primary = ui.go, secondary = ui.back), a little smaller and bolder in sheets. */
 .body{margin:20px 4px 0;font-size:var(--font-body);font-weight:500;line-height:1.8;color:var(--wk-text);text-align:center}
+/* A second line of the same message (e.g. what is not open yet) follows closely. */
+.body+.body{margin-top:2px}
 .primary,.secondary{gap:8px;min-height:50px;padding:0 20px;font-size:var(--font-body);font-weight:800;letter-spacing:0;white-space:normal}
 .primary svg,.secondary svg{width:var(--icon-inline);height:var(--icon-inline)}
 .primary:disabled{opacity:.5;cursor:default}

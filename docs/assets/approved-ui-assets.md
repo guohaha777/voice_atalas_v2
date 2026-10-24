@@ -5,7 +5,7 @@
 ## 位置
 
 - 定稿参考：`/Users/hahaking/Projects/voice_atalas/万物声谱_视觉过程稿/定稿页面参考/2026-10-22-四步流程/`。
-- 首页弹窗源图：`assets-source/start/`，6 张透明 PNG。
+- 首页弹窗源图：6 张透明 PNG，弹窗删除后（2026-10-24）原件移到 `万物声谱_视觉过程稿/已停用素材/2026-10-23-开始方式弹窗/`。
 - 通用标记：`assets-source/shared/sound-markers/`，4 张无编号透明 PNG，另保留 1 张母版。
 - 来源 / 提示词 / 尺寸 / Alpha 检查 / SHA-256：`approved-ui-assets-manifest.json`。新 PNG 也已加入现有 `source-manifest.json`。
 

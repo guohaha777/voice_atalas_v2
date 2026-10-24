@@ -12,7 +12,7 @@ export function LabPage(){
  const lab=useLab();
  return <main className={styles.page}>
   <header className={styles.header}>
-   <h1>{labCopy.title}</h1>
+   <h1>{labCopy.title}<a href="/lab/prompts">{labCopy.toPrompts}</a></h1>
    <p>{labCopy.subtitle}<br/>{labCopy.readme}</p>
   </header>
   <div className={styles.columns}>

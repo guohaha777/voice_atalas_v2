@@ -1,8 +1,7 @@
 import type {SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import type {Visibility} from '@wanwu-v2/contracts/work';
 import type {ComposeNoticeKey} from '../model/composeState';
-import type {Discovery} from '../model/discoveries';
-import {discoveryText} from './discoveryCopy';
+import type {Discovery} from '@wanwu-v2/contracts/talk';
 
 export const composeCopy={
  title:'看着曲谱，听听自己的小曲子',
@@ -44,9 +43,9 @@ export const composeCopy={
  spanNote:'和声场的长度是同一个；最后的声音会完整唱完。',
  // Inspiration
  inspirationTitle:'课本灵感',inspirationOptional:'（可跳过）',
- inspirationLead:'借课本的节奏和气质给背景，不改你的声音。',
+ inspirationLead:'让背景跟着课本歌曲的节奏走。',
  inspirationNone:'先不用',inspirationTextbook:'跟着课本',inspirationSuggest:'帮我找找',
- inspirationTeachingWait:'要等后台分析后，背景才会跟着它生成；现在先跟着心情生成。',
+ inspirationTeachingWait:'这段音乐还不能用来做背景，现在背景跟着心情走。',
  inspirationBackgroundOff:'背景关着，打开背景音乐才听得到。',
  // Background
  backgroundTitle:'背景音乐',
@@ -55,17 +54,17 @@ export const composeCopy={
  instrumentsLabel:'选乐器演奏背景（可多选，再点一下取消；不选就是原始背景）',
  instrumentMore:'更多',instrumentComing:(names:string)=>`更多乐器：${names}，即将开放`,
  volumeLabel:'背景音量',
- /** The background source tag: what plays now, and what a tap would switch to (only once an AI background is ready). */
- sourceLabel:(now:string,next:string|null)=>next?`现在是${now}的背景，点一下换成${next}`:`现在是${now}的背景（AI 背景暂未开放，点一下听说明）`,
+ /** The AI chip, shown once an AI background is ready. */
+ aiTag:'AI',aiLabel:(using:boolean)=>using?'正在听 AI 做的背景，点一下换回原来的':'换上 AI 做的背景',
  // Discovery
- discoveryTitle:'音乐小发现',discoveryNote:'（按摆放数出来的）',discoveryNext:'换一条',
- discovery:(item:Discovery)=>discoveryText(item).line,
+ discoveryTitle:'音乐小发现',discoveryNext:'换一条',
  bulbOpen:'点小灯泡，看这首音乐有什么特征',bulbClose:'收起',
  variationLabel:'课本歌曲换几种样子',
- talkTitle:'课本讲解',talkSource:'本地模板 · AI 润色未开放',
+ talkTitle:'课本讲解',
+ tryThisTitle:'试一试',tryThisLead:'回声场里',
  talkParts:{feature:'特点',shape:'这次的样子',meeting:'碰一碰',task:'试一试'},
  teachTitle:'这首音乐有什么特征',
- teachLead:'每一条特征都是从这首曲子的摆放里数出来的，可以边播放边讲给孩子听。',
+ teachLead:'边放边讲，问问孩子听出了什么。',
  teachIdea:'音乐知识',teachAsk:'可以问孩子',
  teachPlay:'从头放给大家听',
  moodLabel:'心情',
@@ -80,7 +79,7 @@ export const composeCopy={
   visibility:'谁能看到',
   visibilities:{private:'仅自己',class:'班级',school:'学校',region:'地区',public:'公开'} satisfies Record<Visibility,string>,
   visibilityOff:'需要账号，未开放',
-  sessionOnly:'只保存在这次打开的页面里，刷新就没了；保存到账号还没有开放。',
+  sessionOnly:'只保存在这次打开的页面里，刷新就没了。',
   share:'分享链接',shareOff:'未开放',
   cancel:'先不存',submit:'放进作品书架',update:'更新书架里的这首',
  },

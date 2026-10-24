@@ -52,7 +52,7 @@ function Identity({birth,source}:{birth:Birth;source:SoundSource}){
   :state.cardConfirmed?[p.recordedBy,p.place,day(p.recordedOn)].filter(Boolean).join(' · '):birthCopy.sourceLabel[source.kind];
  return <div className={styles.identity}>
   {editing?<input className={styles.nameInput} defaultValue={state.name} maxLength={SOUND_NAME_MAX} aria-label="声卡名字" autoFocus
-    onBlur={event=>{birth.dispatch({type:'rename',name:event.currentTarget.value});setEditing(false);}}
+    onBlur={event=>{birth.rename(event.currentTarget.value);setEditing(false);}}
     onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();if(event.key==='Escape'){event.currentTarget.value=state.name;event.currentTarget.blur();}}}/>
    :<h3 className={styles.name}>{state.name}<button type="button" className={styles.iconButton} aria-label={birthCopy.rename} onClick={()=>setEditing(true)}><Glyph name="edit"/></button></h3>}
   <p className={styles.sourceKind}>{meta}</p>

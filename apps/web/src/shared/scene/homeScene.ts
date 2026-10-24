@@ -2,7 +2,7 @@
 // Shared because later pages reuse the same cached files: example sounds, the guide animals
 // and the work-page backdrop. Only typed access lives here; placement and behaviour stay with each page.
 import data from './home-assets.generated.json';
-import type {HomeManifest,SceneLayer,SoundClip,SoundId} from '../media/types';
+import type {HomeManifest,SceneLayer} from '../media/types';
 
 export const homeScene=data as HomeManifest;
 
@@ -11,4 +11,3 @@ export function homeLayer(id:string):SceneLayer{
  if(!layer)throw new Error('Missing home scene layer '+id);
  return layer;
 }
-export function homeSound(id:SoundId):SoundClip{return homeScene.sounds[id];}

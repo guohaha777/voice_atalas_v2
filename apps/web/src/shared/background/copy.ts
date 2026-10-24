@@ -1,10 +1,9 @@
-// How the background describes itself on both pages: which step of the background chain made it, and what it borrows.
+// How the background describes itself on both pages: what it follows and what it borrows, and who plays what.
 import {BACKGROUND_PARTS,ORIGINAL_PLAYER} from '@wanwu-v2/sound-rules/background';
-import type {BackgroundSource} from '@wanwu-v2/contracts/background';
 import type {BackgroundPart,BackgroundPlan} from '@wanwu-v2/sound-rules/background';
 import type {BackgroundMode} from '@wanwu-v2/sound-rules/rules';
-import {moodLabels} from '../creation/moodCopy';
-import {metreNames} from '../inspiration/copy';
+import {moodLabels} from '../creation/moodCopy.ts';
+import {metreNames} from '../inspiration/copy.ts';
 
 const modeWords:Record<BackgroundMode,string>={major:'明亮的大调',minor:'柔和的小调',pentatonic:'五声调式',dorian:'有点神秘的调子'};
 
@@ -17,11 +16,9 @@ export const backgroundCopy={
   for(const part of BACKGROUND_PARTS)for(const player of parts[part])byPlayer.set(player,[...byPlayer.get(player)??[],part]);
   return [...byPlayer].map(([player,played])=>`${player===ORIGINAL_PLAYER?'原始背景':names[player]??player}${played.every(part=>part==='rhythm')?'打':'弹'}${played.map(part=>partNames[part]).join('、')}`).join('，');
  },
- /** The step of the background chain that is playing. */
- source:{'local-rules':'本地生成','notes-ai':'AI 写音符','audio-ai':'AI 生成'} satisfies Record<BackgroundSource,string>,
- /** “跟着「悲伤」的心情，柔和的小调，借了「摇篮曲」的三拍子”. */
+ /** “「悲伤」的心情，柔和的小调，借了「摇篮曲」的三拍子”. */
  describe:(plan:Pick<BackgroundPlan,'colour'|'mode'|'metre'>,trackTitle:string|null)=>[
-  plan.colour==='none'?'没选心情':`跟着「${moodLabels[plan.colour]}」的心情`,
+  plan.colour==='none'?'没选心情':`「${moodLabels[plan.colour]}」的心情`,
   modeWords[plan.mode],
   trackTitle?`借了「${trackTitle}」的${metreNames[plan.metre]}`:metreNames[plan.metre],
  ].join('，'),

@@ -41,7 +41,7 @@ export function SpiritStage({birth,reach}:{birth:Birth;reach:()=>Element|null}){
  const spoken=said&&!askingForSound?said:null;
  const bubble=spoken?spoken.text:hello?birthCopy.bubble.hello
   :birth.hint&&hintKey===birth.hint.key?birth.hint.text
-  :!source?birthCopy.bubble.empty:sounding?birthCopy.bubble.sounding:description?birthCopy.bubble.shaped(description):birthCopy.bubble.fresh(state.name);
+  :!source?birthCopy.bubble.empty:birth.playing==='original'?birthCopy.bubble.original:sounding?(description?birthCopy.bubble.current:birthCopy.bubble.sounding):description?birthCopy.bubble.shaped(description):birthCopy.bubble.fresh(state.name);
  useEffect(()=>{
   if(!birth.hint)return;
   setHintKey(birth.hint.key);const timer=setTimeout(()=>setHintKey(null),HINT_MS);return()=>clearTimeout(timer);

@@ -17,19 +17,22 @@ export const birthCopy={
  // One question per row, shown on the row being looked at.
  rowHints:{pitch:'声音是站得高，还是站得低？',duration:'声音能响多久？',contour:'声音是怎么走的？',intensity:'声音是轻轻的，还是大大的？',pattern:'声音是怎么出现的？'} satisfies Record<SoundDimension,string>,
  progress:(done:number,total:number)=>`已选 ${done} / ${total}`,
- bubble:{empty:'先给我一个声音吧！',fresh:(name:string)=>`我是「${name}」，给我变个样子吧～`,shaped:(desc:string)=>`我现在${desc}`,sounding:'听，我在唱歌～',hello:'你好呀！'},
+ bubble:{empty:'先给我一个声音吧！',fresh:(name:string)=>`我是「${name}」，给我变个样子吧～`,shaped:(desc:string)=>`我现在${desc}`,sounding:'听，我在唱歌～',hello:'你好呀！',
+  original:'这是我原来的声音～',current:'这是我变样以后的声音～',renamed:(name:string)=>`我现在叫「${name}」啦！`},
+ /** Said when a choice is taken back: that row goes back to how the sound was. */
+ cleared:(dimension:SoundDimension,value:string)=>`「${(dimensionCopy[dimension].options as Record<string,string>)[value]??value}」取消啦，${dimensionCopy[dimension].label}回到原来的样子。`,
  greet:'声音标记，点一点和它打招呼',rename:'改名字',original:'听原声',current:'听现在的',stopPlaying:'停',
  keepOriginal:'原声保留，随时可以比较。',
  sourceLabel:{example:'示例声音','local-recording':'本机录音 · 未上传','local-file':'本机文件 · 未上传'} satisfies Record<SoundSourceKind,string>,
  // Editor
  tapToClear:'再点一下取消',
- optionHint:'选一项听听变化，再点一下就取消；不选的保持原声。',
+ optionHint:'点一点，听听声音怎么变；再点一下取消。',
  backEntry:'返回入口',finish:'做好了，去万物声场',finishUnavailable:'暂未开放',
  needSound:'先在上方选一个声音。',
  // 声音体检 found nothing to hear: say so plainly, the child may re-record (the recording is kept as it is).
  silent:'这段好像没录到声音，可以点「录音」重录，或换一段。',
  // 返回声音诞生: going on with the last sound; a new recording, upload or library sound makes a new one.
- editing:(name:string)=>`接着改「${name}」：改好了点「做好了」。想做一个新声音，就重新录音、上传或从声音库挑。`,
+ editing:(name:string)=>`接着改「${name}」吧，改好点「做好了」。想做新声音，就换一个来源。`,
  editMissing:'这个声音的录音没找到，可以重新录音或上传。',
  silentFinish:'这段好像没录到声音。确定就用它，再点一次「做好了」。',
  needProvenance:'补齐下面的声音信息，这个声音才能溯源。',
@@ -72,7 +75,7 @@ export const birthCopy={
  fileTooBig:'文件太大了，请选 20MB 以内的声音。',
  fileUnreadable:'这个文件读不出声音，换一个试试。',
  tooLong:'这个文件超过 10 分钟，太长了，请先剪短一些再上传。',
- trimDialog:{title:'这段声音有点长',description:`一个声音最多用 ${SOUND_SOURCE_MAX_MS/1000} 秒。拖动绿框选出想要的一段，也可以点波形跳过去。`,
+ trimDialog:{title:'这段声音有点长',description:`拖动绿框，选出最想要的一段（最多 ${SOUND_SOURCE_MAX_MS/1000} 秒）。`,
   start:'开始位置',end:'结束位置',picked:(from:string,to:string,length:string)=>`用 ${from} 到 ${to}，共 ${length} 秒`,
   listen:'试听这段',stop:'停',use:'用这段声音',cancel:'不用了'},
  slowNetwork:'网络有点慢，声音没加载出来，再点一次试试。',

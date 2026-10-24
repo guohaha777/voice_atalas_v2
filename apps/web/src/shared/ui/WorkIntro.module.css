@@ -8,7 +8,7 @@
 .intro h1{margin:0;font-size:var(--font-page-title);line-height:var(--line-title);font-weight:800;letter-spacing:.02em}
 .introText p{line-height:var(--line-body);margin:5px 0 0;font-size:var(--font-body);font-weight:500;color:var(--wk-muted)}
 .guidePanel{display:flex;align-items:center;gap:12px;flex:0 1 auto;min-width:0}
-.guideBubble{min-width:0;overflow-wrap:anywhere;position:relative;max-width:min(440px,38vw);margin:0;padding:11px 18px;border-radius:22px 22px 6px 22px;background:#fff;box-shadow:0 8px 22px #26301a1c,0 1px 0 var(--wk-line-strong);font-size:var(--font-body);font-weight:600;line-height:1.5;transform-origin:88% 100%;animation:bubbleIn .45s var(--wk-ease)}
+.guideBubble{min-width:0;overflow-wrap:anywhere;position:relative;max-width:min(600px,46vw);margin:0;padding:11px 18px;border-radius:22px 22px 6px 22px;background:#fff;box-shadow:0 8px 22px #26301a1c,0 1px 0 var(--wk-line-strong);font-size:var(--font-body);font-weight:600;line-height:1.5;transform-origin:88% 100%;animation:bubbleIn .45s var(--wk-ease)}
 .guideBubble[data-tone=error]{background:#fff1f3;color:#b23a50}
 .guideBubble[data-tone=error]::after{background:#fff1f3}
 .guideBubble::after{content:"";position:absolute;right:-7px;bottom:10px;z-index:-1;width:16px;height:16px;border-radius:3px;background:#fff;box-shadow:3px 3px 4px #26301a10;transform:rotate(45deg) skew(8deg,8deg)}
