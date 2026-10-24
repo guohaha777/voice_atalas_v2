@@ -12,8 +12,11 @@ import {clockText,scoreLayout,scorePosition,secondsAt,soundingAt,spanChoices} fr
 import {composeReducer,initialCompose,isShelved,shelfEntry} from '../src/pages/compose/model/composeState.ts';
 import type {ComposeState} from '../src/pages/compose/model/composeState.ts';
 import {findDiscoveries} from '../src/pages/compose/model/discoveries.ts';
-import {backgroundScore,voicings} from '../src/pages/compose/model/backgroundSynth.ts';
-import {moodRhythm} from '../src/pages/compose/services/backgroundLibrary.ts';
+import {backgroundPlan} from '@wanwu-v2/sound-rules/background';
+import {backgroundInput} from '../src/shared/background/backgroundLayer.ts';
+import {exampleTracks} from '../src/shared/inspiration/exampleTracks.ts';
+import {inspirationMatches} from '../src/shared/inspiration/matches.ts';
+import {isTextbookTrack} from '@wanwu-v2/contracts/textbook';
 import {parseRoute,routeHref} from '../src/app/router.ts';
 import {previewNotes} from '../src/shared/inspiration/rhythmPreview.ts';
 
@@ -126,18 +129,35 @@ test('音乐小发现 states only facts counted from the arrangement',()=>{
  assert.deepEqual(findDiscoveries(work({events:[]})),[]);
 });
 
-test('the background music is one score; instruments only change who plays it, none = as generated',()=>{
- const score=backgroundScore(10,{tempo:60,metre:4});
- assert.equal(score.filter(note=>note.part==='chord').length,3*3,'three bars of three-note chords');
- assert.deepEqual(score.filter(note=>note.part==='melody').map(note=>note.accent).slice(0,5),[true,false,false,false,true]);
- assert.ok(score.every(note=>note.at+note.length<=10+1e-9));
- const melody=backgroundScore(6,{tempo:60,metre:3}).filter(note=>note.part==='melody');
- assert.deepEqual(melody.map(note=>note.at),[0,1,2,3,4,5]);
- assert.deepEqual(voicings([]),['original'],'no instrument: the music as generated, not silence');
- assert.deepEqual(voicings(['bells','pulse']),['bells','pulse']);
- assert.deepEqual(moodRhythm({kind:'preset',id:'sad'}),{tempo:60,metre:3});
- assert.deepEqual(moodRhythm({kind:'custom',text:'像打雷',nearest:'angry'}),{tempo:96,metre:4});
- assert.deepEqual(moodRhythm(null),{tempo:76,metre:4});
+test('the local background is made from the work: its length, when its sounds play, its mood and the chosen song',()=>{
+ const piece=work({events:[ev('a',0,0,4),ev('b',.5,0,3)],mood:{kind:'custom',text:'像打雷',nearest:'angry'}});
+ const input=backgroundInput(piece,{kind:'none'},exampleTracks);
+ assert.equal(input.seconds,pieceSeconds(piece));
+ assert.deepEqual(input.sounding,[{start:0,end:4},{start:15,end:18}],'the same times the score and the playback use');
+ assert.equal(input.mood,'angry','a custom mood uses the nearest preset');
+ assert.equal(input.seed,piece.id);
+ const borrowed=backgroundInput(piece,{kind:'textbook',entryId:'tb:mock:lullaby'},exampleTracks);
+ assert.equal(borrowed.textbook?.id,'tb:mock:lullaby');
+ const plan=backgroundPlan(borrowed);
+ assert.deepEqual([plan.tempo,plan.metre,plan.colour],[66,3,'angry'],'the song lends its rhythm, the child\'s mood the colour');
+ assert.equal(backgroundInput(piece,{kind:'teaching-music',musicId:'m',name:'歌',durationMs:1000},exampleTracks).textbook,null,'teaching music is not analysed yet');
+});
+
+test('textbook example cards are valid templates, and 帮我找找 finds the most alike songs offline',()=>{
+ assert.ok(exampleTracks.length>=6&&exampleTracks.every(isTextbookTrack));
+ assert.ok(exampleTracks.every(track=>track.source===null&&track.extraction.numbers==='example'),'examples say they are examples');
+ assert.deepEqual(inspirationMatches(work({events:[]}),exampleTracks),[],'nothing placed: nothing to match');
+ const matches=inspirationMatches(work({events:[ev('a',0,0,4),ev('b',.5,0,3)],mood:{kind:'preset',id:'sad'}}),exampleTracks);
+ assert.equal(matches.length,3);
+ assert.ok(matches.every(match=>exampleTracks.includes(match.track)&&match.reason.field));
+});
+
+test('万物成曲 refuses a length too short for the longest sound',()=>{
+ const state=loaded(work({events:[ev('a',0,0,25)]}));
+ assert.equal(state.arrangement!.spanSeconds,30);
+ const refused=composeReducer(state,{type:'span',spanSeconds:20,now});
+ assert.equal(refused.arrangement,state.arrangement);assert.equal(refused.lastAction,'span-blocked');
+ assert.equal(composeReducer(state,{type:'span',spanSeconds:45,now}).arrangement!.spanSeconds,45);
 });
 
 test('routes /compose and /works',()=>{

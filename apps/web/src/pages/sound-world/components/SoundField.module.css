@@ -85,6 +85,8 @@
 .span button{position:relative;min-width:52px;min-height:32px;padding:0 10px;border:0;border-radius:999px;background:none;color:#56615a;font-size:var(--font-small);font-weight:700;font-variant-numeric:tabular-nums;transition:background .16s,color .16s}
 .span button::before{content:"";position:absolute;inset:-6px -1px}
 .span button[aria-checked=true]{background:var(--wk-selected-fill);color:var(--wk-on-fill);box-shadow:var(--wk-selected-lift)}
+/* Too short for the longest sound: greyed, still tappable so the frog can say why. */
+.span button[aria-disabled=true]{color:#b4baa9;text-decoration:line-through;text-decoration-color:#c9cebf;cursor:not-allowed}
 @keyframes bob{50%{transform:translateY(-6px) rotate(-3deg)}}
 @keyframes breathe{50%{scale:1.06}}
 @media(--reduced-motion){

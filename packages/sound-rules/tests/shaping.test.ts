@@ -59,19 +59,45 @@ test('变化 moves within each sound, and across sound that runs together',()=>{
 });
 
 test('出现方式 lays out whole sounds: repeat is the same sound on a beat, bursts are groups; nothing cut mid-sound',()=>{
- const {count}=SHAPING_RULES.pattern.repeat,{groups,hitsPerGroup}=SHAPING_RULES.pattern.bursts;
+ const {minCount}=SHAPING_RULES.pattern.repeat,{minGroups,hitsPerGroup}=SHAPING_RULES.pattern.bursts;
  const repeat=planCard({pattern:'repeat'},series,'s');
- assert.equal(repeat.events.length,count);
+ assert.ok(repeat.events.length>=minCount);
  assert.ok(repeat.events.every(event=>event.from===series.units[0]!.startMs/1000),'the loudest sound, every time');
  const gaps=ends(repeat).slice(1).map(([start],i)=>start!-ends(repeat)[i]![1]!);
  assert.ok(gaps.every(gap=>Math.abs(gap-gaps[0]!)<1e-9),'on a steady beat');
  const bursts=planCard({pattern:'bursts'},series,'seed');
- assert.equal(bursts.events.length,groups*hitsPerGroup);
+ assert.ok(bursts.events.length>=minGroups*hitsPerGroup&&bursts.events.length%hitsPerGroup===0,'whole groups only');
  const starts=new Set(series.units.map(unit=>unit.startMs/1000));
  assert.ok(bursts.events.every(event=>starts.has(event.from)),'every hit is one of the real sounds');
  assert.deepEqual(planCard({pattern:'bursts'},series,'seed'),bursts,'repeatable');
  const waves=planCard({pattern:'repeat'},texture,'s');
  assert.ok(waves.events.every(event=>event.swell),'sound that runs together comes and goes in waves');
+});
+
+test('重复 and 一阵一阵 fill the excerpt: its length (with 长短) decides how long, never fewer than the minimum',()=>{
+ const {waveSeconds,waveGapSeconds,minCount}=SHAPING_RULES.pattern.repeat;
+ // A long running sound cut to 30 s comes and goes all through those 30 s, from different places in it.
+ const long=analyseSamples([pulsing(40,2500,4)],RATE),clip={startMs:0,endMs:30_000};
+ const waves=planClip({pattern:'repeat'},clip,long,'s');
+ assert.equal(waves.events.length,Math.floor((30+waveGapSeconds)/(waveSeconds+waveGapSeconds)));
+ assert.ok(waves.totalSeconds<=30+1e-9&&waves.totalSeconds>30-(waveSeconds+waveGapSeconds));
+ assert.ok(new Set(waves.events.map(event=>event.from)).size>1,'not the same two seconds again and again');
+ const gusts=planClip({pattern:'bursts'},clip,long,'s');
+ assert.ok(gusts.totalSeconds<=30+1e-9&&gusts.totalSeconds>25);
+ // Separate sounds: the loudest one on a beat, and groups of the sound's own sounds, as long as the excerpt.
+ const croaks=analyseSamples([join(...Array.from({length:12},(_,i)=>join(silence(.5),tone(.25,600,i%3?.3:.5))),silence(.4))],RATE);
+ assert.equal(croaks.kind,'series');
+ const seriesClip={startMs:0,endMs:Math.round(croaks.durationMs)},seconds=croaks.durationMs/1000;
+ for(const pattern of ['repeat','bursts'] as const){
+  const plan=planClip({pattern},seriesClip,croaks,'s');
+  assert.ok(plan.totalSeconds<=seconds+1e-9,pattern);
+  assert.ok(plan.totalSeconds>seconds-2.5,pattern);
+ }
+ // 长长的 makes the filled length longer too.
+ const stretched=planClip({pattern:'repeat',duration:'long'},seriesClip,croaks,'s');
+ assert.ok(stretched.totalSeconds>planClip({pattern:'repeat'},seriesClip,croaks,'s').totalSeconds);
+ // A very short excerpt still repeats at least the minimum number of times.
+ assert.equal(planClip({pattern:'repeat'},{startMs:300,endMs:600},series,'s').events.length,minCount);
 });
 
 test('the renderer\'s length always equals what the field and score compute',()=>{
@@ -82,6 +108,19 @@ test('the renderer\'s length always equals what the field and score compute',()=
   assert.ok(Math.abs(plan.totalSeconds-clipHeardSeconds(shape,analysis,clip))<1e-9,JSON.stringify({shape,clip,kind:analysis?.kind}));
  }
  for(const shape of shapes)for(const analysis of [one,series,texture])assert.ok(planCard(shape,analysis,'s').totalSeconds<=SHAPING_RULES.limits.cardMaxSeconds+1e-9);
+});
+
+test('one sound never lasts longer than the longest field; past the limit it ends between sounds',()=>{
+ const {clipMaxSeconds}=SHAPING_RULES.limits;
+ assert.equal(clipMaxSeconds,45);
+ const long=analyseSamples([pulsing(46,2500,4)],RATE),clip={startMs:0,endMs:45_000};
+ for(const pattern of SOUND_CHOICES.pattern)assert.ok(planClip({duration:'long',pattern},clip,long,'s').totalSeconds<=clipMaxSeconds+1e-9,pattern);
+ const one=planClip({duration:'long'},clip,long,'s');
+ assert.equal(one.events.length,1);assert.ok(one.events[0]!.releaseSeconds>1,'a single long sound is cut with a long fade');
+ const croaks=analyseSamples([join(...Array.from({length:40},()=>join(silence(.8),tone(.3,600))),silence(.4))],RATE);
+ const stretched=planClip({duration:'long'},{startMs:0,endMs:Math.round(croaks.durationMs)},croaks,'s');
+ assert.ok(stretched.totalSeconds<=clipMaxSeconds+1e-9);
+ assert.ok(stretched.events.every(event=>event.at+event.length<=clipMaxSeconds+1e-9&&event.releaseSeconds<1),'whole croaks only, none cut');
 });
 
 test('no analysis yet: the excerpt plays as it is',()=>{

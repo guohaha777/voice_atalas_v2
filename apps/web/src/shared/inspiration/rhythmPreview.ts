@@ -1,7 +1,7 @@
 // A short listen to an example textbook rhythm (the catalogue's real songs are not connected): a few bars made in the
 // browser at the entry's tempo and metre — a brighter bell on each downbeat, soft wood ticks on the other beats and a
 // quiet chord per bar — so a child hears "two beats", "three beats" or "four beats" and the speed before choosing.
-import type {Rhythm} from './catalog';
+import type {Rhythm} from './catalog.ts';
 
 export type PreviewNote={at:number;length:number;freq:number;voice:'bell'|'tick'|'pad'};
 const hz=(midi:number)=>440*2**((midi-69)/12);

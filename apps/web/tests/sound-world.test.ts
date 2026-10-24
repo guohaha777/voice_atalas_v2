@@ -115,9 +115,12 @@ test('excerpt editing: edges, sliding window, taps and keys stay inside the reco
 test('field playback of an excerpt plays it as chosen: no 10-second cap; timing follows the unit\'s own analysis',()=>{
  assert.equal(heardSeconds(unit('a',0),{clip:{startMs:0,endMs:30_000}}),30,'no analysis yet: the excerpt as it is');
  assert.equal(heardSeconds({shape:{...once,pitch:'high'}},{clip:{startMs:0,endMs:2000}}),2,'高低 keeps the length');
- const {count,waveSeconds,waveGapSeconds}=SHAPING_RULES.pattern.repeat;
+ const {waveSeconds,waveGapSeconds}=SHAPING_RULES.pattern.repeat;
  const repeated=heardSeconds({shape:{...once,pattern:'repeat'}},{clip:{startMs:0,endMs:10_000}});
- assert.ok(Math.abs(repeated-(count*waveSeconds+(count-1)*waveGapSeconds))<1e-9,'a long running sound comes back in short waves');
+ const waves=Math.floor((10+waveGapSeconds)/(waveSeconds+waveGapSeconds));
+ assert.ok(Math.abs(repeated-(waves*waveSeconds+(waves-1)*waveGapSeconds))<1e-9,'a long running sound comes back in waves all through the excerpt');
+ const bird=exampleUnit('bird',0),whole={startMs:bird.analysis!.main!.startMs,endMs:bird.analysis!.main!.startMs+45_000};
+ assert.ok(heardSeconds({...bird,shape:{...bird.shape,pattern:'repeat'}},{clip:whole})>40,'45 s of birdsong repeated still lasts about 45 s, not a few seconds');
  const frog=exampleUnit('frog',0);
  assert.equal(frog.analysis?.kind,'series','example units carry the library analysis');
  const clip={startMs:frog.analysis!.main!.startMs,endMs:frog.analysis!.main!.endMs};
@@ -240,4 +243,27 @@ test('moods: seven presets plus the child’s own words, which need a connected 
  assert.equal(cleanMoodText('  像   下雨天  '),'像 下雨天');
  assert.deepEqual(parseInterpretation({nearest:'calm'}),{nearest:'calm'});
  assert.equal(parseInterpretation({nearest:'grumpy'}),null);
+});
+
+test('one sound is never longer than the field: the field grows to hold it, shorter lengths are refused',()=>{
+ let state=loaded(work({spanSeconds:20,events:[ev('e1',.1,0,5)]}));
+ // Placing a 25 s sound in a 20 s field: the field becomes 30 s and the frog says why; positions stay.
+ state=soundWorldReducer(state,{type:'place',unitId:'u2',eventId:'e2',at:.5,row:1,clip:{startMs:0,endMs:25_000},now});
+ assert.equal(state.arrangement!.spanSeconds,30);assert.equal(state.lastAction,'span-fitted');
+ assert.deepEqual(state.arrangement!.events.map(event=>event.at),[.1,.5]);
+ // A longer excerpt picked with 剪一剪 grows it again, to the shortest length that holds it.
+ state=soundWorldReducer(state,{type:'clip',eventId:'e2',clip:{startMs:0,endMs:40_000},now});
+ assert.equal(state.arrangement!.spanSeconds,45);assert.equal(state.lastAction,'span-fitted');
+ // Shorter lengths are refused while that sound is there; nothing else changes.
+ const refused=soundWorldReducer(state,{type:'span',spanSeconds:30,now});
+ assert.equal(refused.arrangement,state.arrangement);assert.equal(refused.lastAction,'span-blocked');
+ // Only the sound's own length counts: a 15 s sound late in a 30 s field may still run past the end.
+ const late=loaded(work({events:[ev('e1',.8,0,15)]}));
+ assert.equal(late.arrangement!.spanSeconds,30);
+ assert.equal(soundWorldReducer(late,{type:'span',spanSeconds:20,now}).arrangement!.spanSeconds,20);
+ // A work that comes in with a sound longer than its field is fitted on load.
+ assert.equal(loaded(work({spanSeconds:20,events:[ev('e1',0,0,28)]})).arrangement!.spanSeconds,30);
+ // The real length arriving later can also make a sound longer than the field.
+ const unknown=loaded(work({spanSeconds:20,events:[{...ev('e1',0,0),clip:{startMs:0,endMs:SOUND_SOURCE_MAX_MS}}]}));
+ assert.equal(unknown.arrangement!.spanSeconds,45,'a 45 s excerpt needs the 45 s field');
 });

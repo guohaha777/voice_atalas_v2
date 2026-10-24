@@ -21,11 +21,11 @@
   "sweepOpenHz": 16000
  },
  "pattern": {
-  "repeat": {"count": 3, "gapSeconds": 0.35, "motifMaxSeconds": 2.5, "waveSeconds": 2, "waveGapSeconds": 0.4},
-  "bursts": {"groups": 3, "hitsPerGroup": 3, "hitMaxSeconds": 0.8, "innerGapSeconds": 0.08, "groupGapSeconds": 0.7, "gustSeconds": 1.2, "gainJitterDb": 2},
+  "repeat": {"minCount": 3, "gapSeconds": 0.35, "motifMaxSeconds": 2.5, "waveSeconds": 2, "waveGapSeconds": 0.4},
+  "bursts": {"minGroups": 3, "hitsPerGroup": 3, "hitMaxSeconds": 0.8, "innerGapSeconds": 0.08, "groupGapSeconds": 0.7, "gustSeconds": 1.2, "gainJitterDb": 2},
   "fadeIn": {"portion": 0.7, "fromHz": 800, "seriesFromDb": -18}
  },
  "grain": {"seconds": 0.08},
  "edges": {"unitTailSeconds": 0.1, "unitGapSeconds": 0.05, "releaseMinSeconds": 0.04, "releasePortion": 0.15, "cutFadePortion": 0.4, "textureFadeSeconds": 0.4},
- "limits": {"cardMaxSeconds": 10, "clipMaxSeconds": 60}
+ "limits": {"cardMaxSeconds": 10, "clipMaxSeconds": 45}
 }

@@ -37,11 +37,17 @@ export function SoundPalette({world,bind,onMore,onInspiration}:{world:SoundWorld
    })}
   </ul>
   <div className={styles.paletteFoot}>
-   {/* 课本灵感 before arranging: listen to the textbook rhythm (or the teacher's music) first, then place the sounds. */}
-   <button type="button" className={styles.inspiration} data-on={world.inspiration.kind!=='none'||undefined} onClick={onInspiration}>
-    <span className={styles.inspirationBadge}><PaperIcon name="book" tone="pink"/></span>
-    <span className={styles.inspirationText}><b>{worldCopy.inspiration}</b><small>{inspirationCopy.summary(world.inspiration,world.inspirationEntries)}</small></span>
-   </button>
+   {/* 课本灵感 and the background switch share one row; what they mean is said by the frog, not written in the row. */}
+   <div className={styles.inspirationRow} data-on={world.inspiration.kind!=='none'||undefined}>
+    <button type="button" className={styles.inspiration} aria-label={`${worldCopy.inspiration}：${inspirationCopy.summary(world.inspiration,world.inspirationEntries)}`} onClick={onInspiration}>
+     <span className={styles.inspirationBadge}><PaperIcon name="book" tone="pink"/></span>
+     <b>{worldCopy.inspiration}</b>{world.inspiration.kind!=='none'&&<Glyph name="check" className={styles.inspirationCheck}/>}
+    </button>
+    <button type="button" role="switch" aria-checked={world.backgroundEnabled} aria-label={worldCopy.backgroundToggle} className={styles.switch}
+     onClick={()=>world.setBackgroundEnabled(!world.backgroundEnabled)}>
+     <i><Glyph name={world.backgroundEnabled?'sound':'muted'}/></i>
+    </button>
+   </div>
    <button type="button" className={styles.more} onClick={()=>onMore('example')}><Glyph name="plus"/>{worldCopy.more}</button>
    <p className={styles.scopes}>
     {libraryScopes.map(scope=><button key={scope} type="button" onClick={()=>onMore(scope)}>{worldCopy.moreDialog.scopes[scope]}</button>)}

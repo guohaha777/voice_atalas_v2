@@ -7,15 +7,19 @@ import type {Arrangement,MoodChoice,PlacedEvent,SourceClip,SpanSeconds} from '@w
 import {SOUND_SOURCE_MAX_MS} from '@wanwu-v2/contracts/sound';
 import type {SoundAnalysis,SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {defaultClipFor} from '@wanwu-v2/sound-rules/shaping';
-import {MARKER_HALF,coverageEnd,freeRow,rowIsFree,unitOf,withSpan} from '../../../shared/creation/arrangementTiming.ts';
+import {MARKER_HALF,coverageEnd,fitSpan,freeRow,rowIsFree,spanHolds,unitOf,withSpan} from '../../../shared/creation/arrangementTiming.ts';
 // Timing and row tidying live in shared/creation (万物成曲 reads the same); re-exported for this page's modules.
-export {MARKER_HALF,clipSeconds,freeRow,heardSeconds,planPlayback,resettleRows,rowIsFree,unitOf} from '../../../shared/creation/arrangementTiming.ts';
+export {MARKER_HALF,clipSeconds,freeRow,heardSeconds,longestSound,minSpan,planPlayback,resettleRows,rowIsFree,spanHolds,unitOf} from '../../../shared/creation/arrangementTiming.ts';
 export type {PlannedEvent} from '../../../shared/creation/arrangementTiming.ts';
 
 export type Selection={kind:'unit';unitId:string}|{kind:'event';eventId:string}|null;
-export type NoticeKey='pick-first'|'mood-model-off'|'events-full'|'units-full'|'rows-full'|'row-crowded'|'need-event'|'compose-unavailable'|'load-failed'|'no-audio'|'missing-audio';
+export type NoticeKey='pick-first'|'mood-model-off'|'events-full'|'units-full'|'rows-full'|'row-crowded'|'need-event'|'compose-unavailable'|'load-failed'|'no-audio'|'missing-audio'|'background-failed';
 export type WorldNotice={tone:'info'|'error';key:NoticeKey}|null;
-export type LastAction='placed'|'moved'|'copied'|'span'|'removed'|'cleared'|'row-added'|'clipped'|null;
+/** `span-fitted`: a sound got longer than the field, so the field grew to hold it; `span-blocked`: a length too short
+ *  for the longest sound was asked for and refused. */
+export type LastAction='placed'|'moved'|'copied'|'span'|'span-fitted'|'span-blocked'|'removed'|'cleared'|'row-added'|'clipped'
+ /** Choices the frog explains (the row and the mood picker carry no small text): mood, background switch, 课本灵感. */
+ |'mood'|'background-on'|'background-off'|'inspiration'|null;
 export type SoundWorldState={
  arrangement:Arrangement|null;
  selection:Selection;
@@ -44,6 +48,8 @@ export type SoundWorldAction=
  |{type:'mood';mood:MoodChoice|null;now:Date}
  |{type:'span';spanSeconds:SpanSeconds;now:Date}
  |{type:'blocked'}
+ /** A shared setting changed outside the arrangement (background switch, 课本灵感): only what the frog says changes. */
+ |{type:'said';lastAction:'background-on'|'background-off'|'inspiration'}
  |{type:'notice';notice:WorldNotice};
 
 /** 复制 puts the copy right after the original ends, with this small breath. */
@@ -103,9 +109,14 @@ export function canRemoveRow(arrangement:Arrangement){
 const edit=(state:SoundWorldState,arrangement:Arrangement,now:Date,extra:Partial<SoundWorldState>={}):SoundWorldState=>
  ({...state,arrangement:{...arrangement,origin:'child',updatedAt:now.toISOString()},notice:null,blocked:false,...extra});
 const replace=(work:Arrangement,next:PlacedEvent)=>work.events.map(event=>event.id===next.id?next:event);
+/** One sound is never longer than the field: grow the field when an edit made a sound too long, and say so. */
+const fitted=(next:Arrangement,action:LastAction):{arrangement:Arrangement;lastAction:LastAction}=>{
+ const fit=fitSpan(next);
+ return {arrangement:fit,lastAction:fit.spanSeconds!==next.spanSeconds?'span-fitted':action};
+};
 
 export function soundWorldReducer(state:SoundWorldState,action:SoundWorldAction):SoundWorldState{
- if(action.type==='loaded')return {...initialSoundWorld,arrangement:action.arrangement};
+ if(action.type==='loaded')return {...initialSoundWorld,arrangement:fitSpan(action.arrangement)};
  const work=state.arrangement;
  if(!work)return state;
  switch(action.type){
@@ -125,8 +136,9 @@ export function soundWorldReducer(state:SoundWorldState,action:SoundWorldAction)
    if(work.events.length>=ARRANGEMENT_MAX_EVENTS)return {...state,notice:{tone:'error',key:'events-full'}};
    const {event,crowded}=settle(work,{id:action.eventId,unitId:action.unitId,at:clampAt(action.at),row:clampRow(action.row,work.rows),clip:fitClip(action.clip,null)});
    // The new occurrence becomes the selection, so its toolbar (试听 / 剪一剪 / 再响一次 / 移除) is right there.
-   return edit(state,{...work,events:[...work.events,event]},action.now,
-    {selection:{kind:'event',eventId:event.id},lastAction:'placed',notice:crowdedNotice(crowded)});
+   const next=fitted({...work,events:[...work.events,event]},'placed');
+   return edit(state,next.arrangement,action.now,
+    {selection:{kind:'event',eventId:event.id},lastAction:next.lastAction,notice:next.lastAction==='span-fitted'?null:crowdedNotice(crowded)});
   }
   case 'move':{
    const current=eventOf(work,action.eventId);if(!current)return state;
@@ -152,7 +164,8 @@ export function soundWorldReducer(state:SoundWorldState,action:SoundWorldAction)
    const current=eventOf(work,action.eventId);if(!current)return state;
    // A longer excerpt may now reach the next sound in its row: the edited sound moves to a free row, never in time.
    const {event,crowded}=settle(work,{...current,clip:fitClip(action.clip,null)});
-   return edit(state,{...work,events:replace(work,event)},action.now,{selection:{kind:'event',eventId:event.id},lastAction:'clipped',notice:crowdedNotice(crowded)});
+   const next=fitted({...work,events:replace(work,event)},'clipped');
+   return edit(state,next.arrangement,action.now,{selection:{kind:'event',eventId:event.id},lastAction:next.lastAction,notice:next.lastAction==='span-fitted'?null:crowdedNotice(crowded)});
   }
   case 'source-length':{
    const ids=new Set(work.units.filter(unit=>unit.sourceId===action.sourceId).map(unit=>unit.id));
@@ -163,7 +176,7 @@ export function soundWorldReducer(state:SoundWorldState,action:SoundWorldAction)
     if(clip.startMs===event.clip.startMs&&clip.endMs===event.clip.endMs)return event;
     changed=true;return {...event,clip};
    });
-   return changed?{...state,arrangement:{...work,events}}:state;
+   return changed?{...state,arrangement:fitSpan({...work,events})}:state;
   }
   case 'add-unit':{
    if(work.units.some(unit=>unit.id===action.unit.id))return {...state,selection:{kind:'unit',unitId:action.unit.id}};
@@ -180,11 +193,14 @@ export function soundWorldReducer(state:SoundWorldState,action:SoundWorldAction)
   case 'clear-events':return edit(state,{...work,events:[]},action.now,{selection:null,lastAction:'cleared'});
   case 'mood':
    if(action.mood!==null&&!isValidMood(action.mood))return state;
-   return edit(state,{...work,mood:action.mood},action.now);
+   return edit(state,{...work,mood:action.mood},action.now,{lastAction:'mood'});
   case 'span':
    if(!SPAN_CHOICES.includes(action.spanSeconds)||action.spanSeconds===work.spanSeconds)return state;
+   // Too short for the longest sound: refused, and the frog says which sound needs more room.
+   if(!spanHolds(work,action.spanSeconds))return {...state,notice:null,lastAction:'span-blocked'};
    return edit(state,withSpan(work,action.spanSeconds),action.now,{lastAction:'span'});
   case 'blocked':return {...state,blocked:true,notice:{tone:'info',key:'compose-unavailable'}};
+  case 'said':return {...state,notice:null,lastAction:action.lastAction};
   case 'notice':return {...state,notice:action.notice};
  }
 }

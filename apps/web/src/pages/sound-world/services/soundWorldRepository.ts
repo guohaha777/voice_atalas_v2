@@ -5,9 +5,10 @@
 //   GET  /api/v1/works/current/arrangement            → Arrangement (validated with parseArrangement)
 //   PUT  /api/v1/works/{workId}/arrangement           ← Arrangement, If-Match: updatedAt → {status:'saved',version}
 //   GET  /api/v1/sound-units?scope=mine|class|public  → SoundUnitDraft[] (server filters by account and visibility)
-//   PUT  /api/v1/works/{workId}/compose-settings       ← ComposeSettings (课本灵感 chosen here; 万物成曲 uses the same)
+//   PUT  /api/v1/works/{workId}/compose-settings       ← ComposeSettings (课本灵感 and the background switch are chosen
+//                                                      here too; 万物成曲 uses the same settings)
 import type {Arrangement} from '@wanwu-v2/contracts/arrangement';
-import type {Inspiration} from '@wanwu-v2/contracts/work';
+import type {ComposeSettings} from '@wanwu-v2/contracts/work';
 import type {SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {newId} from '../../../shared/creation/ids';
 import {workSession} from '../../../shared/creation/workSession';
@@ -23,9 +24,9 @@ export type SoundWorldRepository={
  load():Promise<Arrangement>;
  save(arrangement:Arrangement):Promise<SaveResult>;
  scope(scope:LibraryScope):Promise<ScopeResult>;
- /** 课本灵感 of the current work (chosen here before arranging, or in 万物成曲). */
- loadInspiration():Promise<Inspiration>;
- saveInspiration(inspiration:Inspiration):Promise<SaveResult>;
+ /** Settings of the current work shared with 万物成曲: 课本灵感 and the background layer (on / off, instruments). */
+ loadSettings():Promise<ComposeSettings>;
+ saveSettings(settings:ComposeSettings):Promise<SaveResult>;
 };
 
 export const mockSoundWorldRepository:SoundWorldRepository={
@@ -40,6 +41,6 @@ export const mockSoundWorldRepository:SoundWorldRepository={
    case 'public':return {status:'unavailable',reason:'needs-review'};
   }
  },
- async loadInspiration(){return workSession.settings().inspiration;},
- async saveInspiration(inspiration){return workSession.saveSettings({...workSession.settings(),inspiration})?{status:'session'}:{status:'failed'};},
+ async loadSettings(){return workSession.settings();},
+ async saveSettings(settings){return workSession.saveSettings(settings)?{status:'session'}:{status:'failed'};},
 };

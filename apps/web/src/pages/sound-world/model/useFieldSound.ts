@@ -1,22 +1,24 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import type {Dispatch,RefObject} from 'react';
-import type {SourceClip} from '@wanwu-v2/contracts/arrangement';
+import type {Arrangement,SourceClip} from '@wanwu-v2/contracts/arrangement';
+import {MIX_RULES} from '@wanwu-v2/sound-rules/mix';
 import type {ChosenShape,SoundAnalysis,SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {audioSupported} from '../../../shared/audio/audioContext';
 import {SequencePlayer} from '../../../shared/audio/SequencePlayer';
 import {originalGainOf} from '../../../shared/audio/soundAnalysis';
+import {pieceSeconds} from '../../../shared/creation/arrangementTiming';
 import {EXAMPLE_TIMEOUT_MS} from '../../../shared/creation/exampleSounds';
 import {WorkSoundBank,soundFailure} from '../../../shared/creation/workSounds';
 import {eventOf,planPlayback,unitOf} from './soundWorldState';
 import type {NoticeKey,SoundWorldAction,SoundWorldState} from './soundWorldState';
 
-/** Several sounds at once: keep the sum under full scale. */
-const MIX_GAIN=.8;
 type Notify=(key:NoticeKey,tone?:'info'|'error')=>void;
+/** The background layer (shared with 万物成曲): whether it plays, how loud, and its render for an arrangement. */
+type Background={enabled:boolean;gain:number;buffer:(arrangement:Arrangement)=>Promise<AudioBuffer>};
 
 /** Everything the field sounds like: originals and shaped renders from the shared work sound bank, single previews,
- *  听听这段声音, and the clock the playheads follow. */
-export function useFieldSound(latest:RefObject<SoundWorldState>,dispatch:Dispatch<SoundWorldAction>,notify:Notify){
+ *  听听这段声音 (with the local background when it is on), and the clock the playheads follow. */
+export function useFieldSound(latest:RefObject<SoundWorldState>,dispatch:Dispatch<SoundWorldAction>,notify:Notify,background:Background){
  const [playing,setPlaying]=useState<string|null>(null);
  const [preparing,setPreparing]=useState<string|null>(null);
  const [elapsed,setElapsed]=useState(0);
@@ -29,6 +31,7 @@ export function useFieldSound(latest:RefObject<SoundWorldState>,dispatch:Dispatc
   dispatch({type:'source-length',sourceId,durationMs});
  }),[]);
  const token=useRef(0);
+ const music=useRef(background);music.current=background;
  /** When each event sounds during 听听这段声音, from the rendered buffers' real lengths. */
  const timeline=useRef<{eventId:string;start:number;end:number}[]>([]);
 
@@ -90,10 +93,16 @@ export function useFieldSound(latest:RefObject<SoundWorldState>,dispatch:Dispatc
   const plan=planPlayback(work),mine=++token.current;
   player.stop();setPreparing('all');
   try{
+   const layer=music.current;
    const sounds=await Promise.all(plan.map(item=>clipSound(item,item.clip)));
+   // The background is its own layer: if it cannot be made, the child's sounds still play.
+   const under=layer.enabled?await layer.buffer(work).catch(()=>{notify('background-failed');return null;}):null;
    if(mine!==token.current)return;
    timeline.current=plan.map((item,index)=>({eventId:item.eventId,start:item.startSeconds,end:item.startSeconds+sounds[index]!.duration}));
-   await player.play('all',plan.map((item,index)=>({at:item.startSeconds,buffer:sounds[index]!})),MIX_GAIN);
+   const voices=plan.map((item,index)=>({at:item.startSeconds,buffer:sounds[index]!}));
+   // With the background, the whole chosen length plays (the background ends there); without it, until the last sound.
+   await player.play('all',under?[...voices,{at:0,buffer:under,layer:'background'}]:voices,MIX_RULES.childGain,
+    {length:under?pieceSeconds(work):undefined,layers:{background:layer.gain},limiter:MIX_RULES.limiter});
   }catch(reason){if(mine===token.current)report(reason);}
   finally{if(mine===token.current)setPreparing(null);}
  };

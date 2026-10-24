@@ -1,9 +1,12 @@
 import {useMemo} from 'react';
 import type {CSSProperties} from 'react';
+import {backgroundCopy} from '../../../shared/background/copy';
 import {inspirationCopy} from '../../../shared/inspiration/copy';
+import type {InspirationTab} from '../../../shared/inspiration/InspirationDialog';
 import {Glyph,PaperIcon} from '../../../shared/ui/PaperIcon';
 import type {PaperIconName,PaperTone} from '../../../shared/ui/PaperIcon';
 import {composeCopy} from '../config/copy';
+import {minSpan} from '../../../shared/creation/arrangementTiming';
 import {secondsLabel,spanChoices} from '../model/scoreLayout';
 import type {Compose} from '../model/useCompose';
 import styles from './SideCards.module.css';
@@ -16,22 +19,24 @@ const Badge=({icon,tone}:{icon:PaperIconName;tone:PaperTone})=>
 export function SpanCard({compose}:{compose:Compose}){
  const arrangement=compose.state.arrangement;
  const choices=useMemo(()=>arrangement?spanChoices(arrangement):[],[arrangement]);
+ const needed=useMemo(()=>arrangement?minSpan(arrangement):0,[arrangement]);
  return <section className={styles.card} aria-labelledby="span-title">
   <h3 id="span-title" className={styles.cardTitle}><Badge icon="clock" tone="sky"/>{composeCopy.spanTitle}</h3>
   <div className={styles.spanOptions} role="radiogroup" aria-labelledby="span-title">
    {choices.map(({seconds,real})=>{
-    const longer=real>seconds+1e-6;
-    return <button key={seconds} type="button" role="radio" aria-checked={arrangement?.spanSeconds===seconds} className={styles.spanOption} onClick={()=>compose.setSpan(seconds)}>
+    // Shorter than the longest sound: greyed, still tappable so the squirrel can say which sound needs more room.
+    const longer=real>seconds+1e-6,short=seconds<needed;
+    return <button key={seconds} type="button" role="radio" aria-checked={arrangement?.spanSeconds===seconds} aria-disabled={short||undefined} className={styles.spanOption} onClick={()=>compose.setSpan(seconds)}>
      <b>{composeCopy.seconds(String(seconds))}</b>
-     <small data-longer={longer||undefined}>{longer?composeCopy.spanReal(secondsLabel(Math.ceil(real-1e-6))):composeCopy.spanOptions[seconds]}</small>
+     <small data-longer={!short&&longer||undefined}>{short?composeCopy.spanTooShort:longer?composeCopy.spanReal(secondsLabel(Math.ceil(real-1e-6))):composeCopy.spanOptions[seconds]}</small>
     </button>;
    })}
   </div>
  </section>;
 }
 
-/** 课本灵感 (optional, also offered in 万物声场): lends rhythm and feel to the background only. 帮我找找 needs a model. */
-export function InspirationCard({compose,onOpen}:{compose:Compose;onOpen:()=>void}){
+/** 课本灵感 (optional, also offered in 万物声场): lends rhythm and feel to the background only. 帮我找找 is local rules. */
+export function InspirationCard({compose,onOpen}:{compose:Compose;onOpen:(tab:InspirationTab)=>void}){
  const {inspiration,background}=compose.state.settings;
  const lead=inspiration.kind==='none'?composeCopy.inspirationLead
   :inspirationCopy.summary(inspiration,compose.entries)+'。'+(inspiration.kind==='teaching-music'?composeCopy.inspirationTeachingWait:background.enabled?'':composeCopy.inspirationBackgroundOff);
@@ -40,10 +45,8 @@ export function InspirationCard({compose,onOpen}:{compose:Compose;onOpen:()=>voi
   <p className={styles.cardLead}>{lead}</p>
   <div className={styles.choiceRow} role="group" aria-labelledby="inspiration-title">
    <button type="button" aria-pressed={inspiration.kind==='none'} onClick={()=>compose.setInspiration({kind:'none'})}>{composeCopy.inspirationNone}</button>
-   <button type="button" aria-pressed={inspiration.kind!=='none'} onClick={onOpen}>{composeCopy.inspirationTextbook}</button>
-   <button type="button" aria-pressed={false} data-busy={compose.suggesting||undefined} onClick={()=>void compose.suggest()}>
-    {composeCopy.inspirationSuggest}{!compose.suggestAvailable&&<small>{composeCopy.inspirationSuggestOff}</small>}
-   </button>
+   <button type="button" aria-pressed={inspiration.kind!=='none'} onClick={()=>onOpen(inspiration.kind==='teaching-music'?'upload':'examples')}>{composeCopy.inspirationTextbook}</button>
+   <button type="button" aria-pressed={false} onClick={()=>onOpen('match')}>{composeCopy.inspirationSuggest}</button>
   </div>
  </section>;
 }
@@ -60,7 +63,7 @@ export function BackgroundCard({compose}:{compose:Compose}){
     <span>{background.enabled?composeCopy.backgroundOn:composeCopy.backgroundOff}</span><i/>
    </button>
   </div>
-  <p className={styles.cardLead}>{!background.enabled?composeCopy.backgroundOffLead:chosen.size?composeCopy.instrumentsPlaying(compose.chosen.map(item=>item.name).join('、')):composeCopy.instrumentsNone}</p>
+  <p className={styles.cardLead}>{!background.enabled?composeCopy.backgroundOffLead:chosen.size?composeCopy.instrumentsPlaying(backgroundCopy.parts(compose.parts,Object.fromEntries(compose.chosen.map(item=>[item.id,item.name])))):composeCopy.instrumentsNone}</p>
   <div className={styles.trackRow} role="group" aria-label={composeCopy.instrumentsLabel}>
    {compose.instruments.map(item=><button key={item.id} type="button" aria-pressed={chosen.has(item.id)} onClick={()=>compose.toggleInstrument(item.id)}>
     {chosen.has(item.id)&&<Glyph name="check"/>}{item.name}
@@ -75,6 +78,7 @@ export function BackgroundCard({compose}:{compose:Compose}){
     style={{'--fill':`${background.volume*100}%`} as CSSProperties} onChange={event=>compose.setBackgroundVolume(Number(event.target.value))}/>
    <span aria-hidden="true">{background.volume<.5?composeCopy.volumeLow:composeCopy.volumeHigh}</span>
   </label>
-  <p className={styles.cardFoot}>{composeCopy.backgroundExample}</p>
+  <p className={styles.cardFoot}>{compose.backgroundPlan&&background.enabled
+   ?`${backgroundCopy.source[compose.backgroundPlan.source]}：${backgroundCopy.describe(compose.backgroundPlan,compose.entry?.title??null)}。`:''}{composeCopy.backgroundExample}</p>
  </section>;
 }

@@ -1,6 +1,5 @@
 import type {SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import type {PatternChoice} from '@wanwu-v2/contracts/sound';
-import {SHAPING_RULES} from '@wanwu-v2/sound-rules/rules';
 import {dimensionCopy} from '../../../shared/creation/dimensionCopy';
 import type {NoticeKey} from '../model/soundWorldState';
 import type {LibraryScope} from '../services/soundWorldRepository';
@@ -12,6 +11,7 @@ export const worldCopy={
  paletteTitle:'选一个声音',listen:'试听',stop:'停',example:'示例',placedTimes:(count:number)=>`放了 ${count} 次`,
  more:'找更多声音',
  inspiration:'课本灵感',
+ backgroundToggle:'背景音乐开关：听的时候带上背景',
  // Field
  fieldLabel:'声场',rowName:(row:number)=>`第 ${row} 行`,
  // Invisible layout reference only: preserve the pre-removal spacing at every font/viewport size.
@@ -20,6 +20,7 @@ export const worldCopy={
  tailLabel:(name:string,seconds:string)=>`剪一剪「${name}」，现在响 ${seconds} 秒`,
  addRow:'加一行',removeRow:'去掉空行',
  spanLabel:'声场长度',spanOption:(seconds:SpanSeconds)=>`${seconds}秒`,
+ spanTooShort:(needed:number)=>`有声音比这更长，至少要 ${needed} 秒`,
  exampleBadge:'示例摆放',clearExample:'清空，自己摆',
  placeInRow:(name:string,row:number)=>`把「${name}」放到第 ${row} 行末尾`,
  moveToRow:(row:number)=>`搬到第 ${row} 行`,
@@ -55,10 +56,12 @@ export const worldCopy={
   start:'开始',end:'结束',window:'选中的一段',
   picked:(from:string,to:string,length:string)=>`从 ${from} 秒到 ${to} 秒，选了 ${length} 秒`,
   heard:(seconds:string,pattern:string)=>`放进声场一共响 ${seconds} 秒（${pattern}）`,
+  atMost:(seconds:number)=>`，一个声音最多响 ${seconds} 秒`,
+  spanWillGrow:(seconds:number)=>`，比声场长，用这一段后声场会换成 ${seconds} 秒`,
   listenClip:'听这一段',listenSource:'听整段原声',useWhole:'整段都用',stop:'停',
   cancel:'不改了',apply:'用这一段',
-  /** 出现方式 wording from the shared five-dimension copy; repeats also say how many times. */
-  pattern:(pattern:PatternChoice|undefined)=>!pattern?'按原声出现一次':pattern==='repeat'?`${dimensionCopy.pattern.options.repeat} ${SHAPING_RULES.pattern.repeat.count} 次`:dimensionCopy.pattern.options[pattern],
+  /** 出现方式 wording from the shared five-dimension copy. 重复 / 一阵一阵 fill the chosen part, so no fixed count. */
+  pattern:(pattern:PatternChoice|undefined)=>!pattern?'按原声出现一次':dimensionCopy.pattern.options[pattern],
  },
 
  notices:{
@@ -73,6 +76,7 @@ export const worldCopy={
   'load-failed':'网络有点慢，声音没加载出来，再点一次试试。',
   'no-audio':'这个浏览器不能播放试听。',
   'missing-audio':'这个声音的录音只在之前打开的页面里，刷新后找不到了。',
+  'background-failed':'背景音乐没能准备好，先只播放你的声音。',
  } satisfies Record<NoticeKey,string>,
 } as const;
 

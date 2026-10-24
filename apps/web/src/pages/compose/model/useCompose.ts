@@ -1,29 +1,31 @@
 import {useCallback,useEffect,useMemo,useReducer,useRef,useState} from 'react';
 import type {SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import type {Inspiration} from '@wanwu-v2/contracts/work';
+import type {TextbookTrack} from '@wanwu-v2/contracts/textbook';
+import {spanHolds} from '../../../shared/creation/arrangementTiming';
 import {mockInspirationCatalog} from '../../../shared/inspiration/catalog';
-import type {InspirationCatalog,InspirationEntry} from '../../../shared/inspiration/catalog';
-import type {Instrument} from '../config/backgrounds';
-import {mockBackgroundLibrary} from '../services/backgroundLibrary';
-import type {BackgroundLibrary} from '../services/backgroundLibrary';
+import type {InspirationCatalog} from '../../../shared/inspiration/catalog';
+import {inspirationMatches} from '../../../shared/inspiration/matches';
+import type {Instrument} from '../../../shared/background/instruments';
+import {mockBackgroundLibrary} from '../../../shared/background/library';
+import type {BackgroundLibrary} from '../../../shared/background/library';
+import {useBackgroundLayer} from '../../../shared/background/useBackgroundLayer';
 import {mockComposeRepository} from '../services/composeRepository';
 import type {ComposeRepository} from '../services/composeRepository';
 import {composeReducer,initialCompose,isShelved,shelfEntry} from './composeState';
 import type {ComposeNoticeKey} from './composeState';
 import {findDiscoveries} from './discoveries';
 import {scoreLayout} from './scoreLayout';
-import {useBackgroundMusic} from './useBackgroundMusic';
 import {usePiecePlayback} from './usePiecePlayback';
 
 /** 万物成曲: listen to the work as a piece, set its length, inspiration and background, then put it on the shelf.
- *  The playback clock lives in usePiecePlayback and the background music in useBackgroundMusic. */
+ *  The playback clock lives in usePiecePlayback and the background layer (shared with 万物声场) in useBackgroundLayer. */
 export function useCompose(repository:ComposeRepository=mockComposeRepository,backgrounds:BackgroundLibrary=mockBackgroundLibrary,inspirations:InspirationCatalog=mockInspirationCatalog){
  const [state,dispatch]=useReducer(composeReducer,initialCompose);
  const [shelfCount,setShelfCount]=useState(0);
  const [instruments,setInstruments]=useState<readonly Instrument[]>([]);
  const [comingInstruments,setComing]=useState<readonly string[]>([]);
- const [entries,setEntries]=useState<readonly InspirationEntry[]>([]);
- const [suggesting,setSuggesting]=useState(false);
+ const [entries,setEntries]=useState<readonly TextbookTrack[]>([]);
  const latest=useRef(state);latest.current=state;
  const notify=useCallback((key:ComposeNoticeKey,tone:'info'|'error'='error')=>dispatch({type:'notice',notice:{tone,key}}),[]);
 
@@ -46,26 +48,24 @@ export function useCompose(repository:ComposeRepository=mockComposeRepository,ba
 
  // ----- derived: score, background, discoveries -----
  const layout=useMemo(()=>state.arrangement?scoreLayout(state.arrangement):null,[state.arrangement]);
- const music=useBackgroundMusic(state.settings,state.arrangement?.mood??null,instruments,entries);
+ const music=useBackgroundLayer(state.settings,instruments,entries);
+ /** 帮我找找: the textbook songs most like this arrangement (local rules). */
+ const matches=useMemo(()=>inspirationMatches(state.arrangement,entries),[state.arrangement,entries]);
+ /** What the background is made of right now (mood colour, borrowed rhythm), for the card. */
+ const backgroundPlan=useMemo(()=>state.arrangement?music.plan(state.arrangement):null,
+ // The plan only changes with the arrangement and what the background borrows.
+ [state.arrangement,music.key]);
  const discoveries=useMemo(()=>state.arrangement?findDiscoveries(state.arrangement):[],[state.arrangement]);
  const playback=usePiecePlayback(latest,notify,music,layout);
 
  // ----- settings -----
- const setSpan=(spanSeconds:SpanSeconds)=>{playback.reset();dispatch({type:'span',spanSeconds,now:new Date()});};
- const setInspiration=(next:Inspiration)=>dispatch({type:'inspiration',inspiration:next});
- const suggestRequest=useRef<AbortController|null>(null);
- /** 帮我找找 needs a connected model; until then it says so. */
- const suggest=async()=>{
+ /** A new length restarts the piece; a length too short for the longest sound is only explained (playback goes on). */
+ const setSpan=(spanSeconds:SpanSeconds)=>{
   const work=latest.current.arrangement;
-  if(!inspirations.suggestAvailable||!work)return notify('suggest-off','info');
-  suggestRequest.current?.abort();const controller=new AbortController();suggestRequest.current=controller;
-  setSuggesting(true);
-  try{
-   const id=await inspirations.suggest(work,controller.signal);
-   if(!controller.signal.aborted&&id&&entries.some(item=>item.id===id))setInspiration({kind:'textbook',entryId:id});
-  }catch{/* nothing chosen; the child can pick from the list */}
-  finally{if(suggestRequest.current===controller){suggestRequest.current=null;setSuggesting(false);}}
+  if(work&&spanHolds(work,spanSeconds))playback.reset();
+  dispatch({type:'span',spanSeconds,now:new Date()});
  };
+ const setInspiration=(next:Inspiration)=>dispatch({type:'inspiration',inspiration:next});
 
  // ----- shelf and sharing -----
  /** Whether this piece can go on the shelf; says why not (empty, or the untouched example). */
@@ -90,13 +90,13 @@ export function useCompose(repository:ComposeRepository=mockComposeRepository,ba
  const startNew=async()=>{playback.pause();await repository.startNew();};
 
  return {
-  state,layout,discoveries,instruments,comingInstruments,chosen:music.chosen,entries,entry:music.entry,
-  playing:playback.playing,preparing:playback.preparing,ended:playback.ended,suggesting,suggestAvailable:inspirations.suggestAvailable,
+  state,layout,discoveries,instruments,comingInstruments,chosen:music.chosen,parts:music.parts,entries,entry:music.track,matches,backgroundPlan,
+  playing:playback.playing,preparing:playback.preparing,ended:playback.ended,
   /** The one playback time (seconds) the playhead, progress bar and highlights read. */
   now:playback.now,total:playback.total,sounding:playback.sounding,
   shelved:isShelved(state),shelfCount,
   togglePlay:playback.togglePlay,restart:playback.restart,playFrom:playback.playFrom,scrubTo:playback.scrubTo,endScrub:playback.endScrub,
-  setSpan,setInspiration,suggest,
+  setSpan,setInspiration,
   setBackgroundEnabled:(enabled:boolean)=>dispatch({type:'background-enabled',enabled}),
   setBackgroundVolume:(volume:number)=>dispatch({type:'background-volume',volume}),
   toggleInstrument:(id:string)=>dispatch({type:'instrument',id}),

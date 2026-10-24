@@ -7,7 +7,7 @@ import {Glyph} from '../../../shared/ui/PaperIcon';
 import {worldCopy} from '../config/copy';
 import {secondsText} from '../model/clipEditing';
 import {FIELD_INSET,spotPosition,timePosition} from '../model/fieldGeometry';
-import {MARKER_HALF,canRemoveRow,eventOf,heardSeconds,unitOf} from '../model/soundWorldState';
+import {MARKER_HALF,canRemoveRow,eventOf,heardSeconds,minSpan,unitOf} from '../model/soundWorldState';
 import type {DragState,useFieldDrag} from '../model/useFieldDrag';
 import type {FieldSpot,SoundWorld} from '../model/useSoundWorld';
 import {EventToolbar} from './EventToolbar';
@@ -29,6 +29,8 @@ export function SoundField({world,area,locate,drag,bind,onTrim}:Props){
  const [hover,setHover]=useState<FieldSpot|null>(null);
  if(!arrangement)return <section className={styles.field} aria-busy="true"><p className={styles.fieldLoading}>{worldCopy.loading}</p></section>;
  const {rows,spanSeconds}=arrangement,rowIndexes=Array.from({length:rows},(_,row)=>row);
+ /** The shortest length that holds every placed sound. */
+ const needed=minSpan(arrangement);
  const selectedEvent=selection?.kind==='event'?eventOf(arrangement,selection.eventId):null;
  const selectedUnit=selection?.kind==='unit'?unitOf(arrangement,selection.unitId):null;
  const order=eventsInOrder(arrangement.events).map(event=>event.id);
@@ -61,7 +63,10 @@ export function SoundField({world,area,locate,drag,bind,onTrim}:Props){
    </div>}
    <div className={styles.span} role="radiogroup" aria-label={worldCopy.spanLabel}>
     <span aria-hidden="true">{worldCopy.spanLabel}</span>
-    {SPAN_CHOICES.map(seconds=><button key={seconds} type="button" role="radio" aria-checked={spanSeconds===seconds} onClick={()=>world.setSpan(seconds)}>{worldCopy.spanOption(seconds)}</button>)}
+    {/* Lengths shorter than the longest sound are greyed; tapping one lets the frog say which sound needs more room. */}
+    {SPAN_CHOICES.map(seconds=>{const short=seconds<needed;
+     return <button key={seconds} type="button" role="radio" aria-checked={spanSeconds===seconds} aria-disabled={short||undefined}
+      title={short?worldCopy.spanTooShort(needed):undefined} onClick={()=>world.setSpan(seconds)}>{worldCopy.spanOption(seconds)}</button>;})}
    </div>
    <div className={styles.rowTools}>
     {canRemoveRow(arrangement)&&<button type="button" className={styles.rowTool} onClick={world.removeRow}>{worldCopy.removeRow}</button>}

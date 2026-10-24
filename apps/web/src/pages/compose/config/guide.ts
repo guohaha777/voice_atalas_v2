@@ -13,6 +13,7 @@ export const guideLines={
  paused:'停在这里啦，再点「播放」接着听。',
  ended:'听完啦！可以换个长度、开关背景再听一遍。',
  span:(seconds:number)=>`变成 ${seconds} 秒啦，声音的先后都没变。`,
+ spanBlocked:(name:string,seconds:number,span:number)=>`「${name}」要响 ${seconds} 秒，至少要 ${span} 秒才放得下。`,
  inspiration:'借来了课本的节奏，只给背景用，你的声音一点没变。',
  saved:'放进作品书架啦！只在这次打开期间保留，刷新就没了。',
 };

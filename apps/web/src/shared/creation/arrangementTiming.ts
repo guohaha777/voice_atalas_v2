@@ -1,7 +1,7 @@
 // Timing and row tidying derived from an arrangement — shared by 万物声场 (editing) and 万物成曲 (the score and the
 // whole-piece playback), so both read the same start times, lengths and rows from the same data.
 // Only left → right changes what is heard; rows only keep sounds from covering each other.
-import {eventsInOrder} from '@wanwu-v2/contracts/arrangement';
+import {SPAN_CHOICES,eventsInOrder} from '@wanwu-v2/contracts/arrangement';
 import type {Arrangement,PlacedEvent,SourceClip,SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import type {ChosenShape,SoundAnalysis,SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {clipHeardSeconds} from '@wanwu-v2/sound-rules/shaping';
@@ -56,6 +56,37 @@ export function resettleRows(arrangement:Arrangement):Arrangement{
 }
 /** Switch the field length (both pages): positions stay, tails rescale, rows are re-tidied. Not yet marked as an edit. */
 export const withSpan=(arrangement:Arrangement,spanSeconds:SpanSeconds)=>resettleRows({...arrangement,spanSeconds});
+
+// ----- one sound never lasts longer than the field -----
+/** The longest single sound (its own heard length, not where it ends), or null when nothing is placed. */
+export function longestSound(arrangement:Arrangement):{unit:SoundUnitDraft;seconds:number}|null{
+ let longest:{unit:SoundUnitDraft;seconds:number}|null=null;
+ for(const event of arrangement.events){
+  const unit=unitOf(arrangement,event.unitId);if(!unit)continue;
+  const seconds=heardSeconds(unit,event);
+  if(!longest||seconds>longest.seconds)longest={unit,seconds};
+ }
+ return longest;
+}
+/** The shortest field length that holds this sound (a sound is never longer than the longest field). */
+export function spanFor(seconds:number):SpanSeconds{
+ return SPAN_CHOICES.find(span=>seconds<=span+1e-6)??SPAN_CHOICES[SPAN_CHOICES.length-1]!;
+}
+/** The shortest field length every placed sound fits in (each on its own length). */
+export function minSpan(arrangement:Arrangement):SpanSeconds{
+ const longest=longestSound(arrangement);
+ return spanFor(longest?.seconds??0);
+}
+/** A length the child may pick: it holds every placed sound. */
+export const spanHolds=(arrangement:Arrangement,spanSeconds:SpanSeconds)=>spanSeconds>=minSpan(arrangement);
+/**
+ * When a sound is longer than the field, switch to the shortest length that holds it (never shorter: the field only
+ * grows on its own). Returns the same arrangement when it already fits.
+ */
+export function fitSpan(arrangement:Arrangement):Arrangement{
+ const needed=minSpan(arrangement);
+ return needed>arrangement.spanSeconds?withSpan(arrangement,needed):arrangement;
+}
 
 /** One scheduled occurrence for playback: when it starts, which excerpt, and the sound card's own shape. */
 export type PlannedEvent={eventId:string;unitId:string;sourceId:string;startSeconds:number;clip:SourceClip;shape:ChosenShape;analysis:SoundAnalysis|null};

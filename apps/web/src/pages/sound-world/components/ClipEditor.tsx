@@ -1,3 +1,5 @@
+import {SHAPING_RULES} from '@wanwu-v2/sound-rules/rules';
+import {spanFor} from '../../../shared/creation/arrangementTiming';
 import {WorkSheet} from '../../../shared/ui/WorkSheet';
 import {Glyph} from '../../../shared/ui/PaperIcon';
 import {worldCopy} from '../config/copy';
@@ -15,6 +17,7 @@ export function ClipEditor({world,eventId,onClose}:{world:SoundWorld;eventId:str
  const editor=useClipEditor(world,eventId,onClose);
  const {unit,clip,totalMs}=editor;
  if(!unit||!clip)return null;
+ const span=world.state.arrangement?.spanSeconds??0;
  const ready=!!editor.buffer&&totalMs>0;
  const listeningClip=world.playing===`clip:${eventId}`,listeningSource=world.playing===`source:${unit.sourceId}`;
  const slider=(edge:'start'|'end')=>({
@@ -40,7 +43,10 @@ export function ClipEditor({world,eventId,onClose}:{world:SoundWorld;eventId:str
     </div>
     <div className={styles.clipScale} aria-hidden="true"><span>0 秒</span><span>{secondsText(totalMs)} 秒</span></div>
     <p className={styles.clipReadout} aria-live="polite">{copy.picked(secondsText(clip.startMs),secondsText(clip.endMs),secondsText(clip.endMs-clip.startMs))}</p>
-    <p className={styles.clipHeard}>{copy.heard(secondsText(editor.heard*1000),copy.pattern(unit.shape.pattern))}</p>
+    <p className={styles.clipHeard}>{copy.heard(secondsText(editor.heard*1000),copy.pattern(unit.shape.pattern))}
+     {/* One sound is never longer than the field: say what happens before the child applies it. */}
+     {editor.heard>=SHAPING_RULES.limits.clipMaxSeconds-.05?copy.atMost(SHAPING_RULES.limits.clipMaxSeconds)
+      :editor.heard>span+1e-6?copy.spanWillGrow(spanFor(editor.heard)):''}</p>
     <div className={styles.clipTools}>
      <button type="button" aria-pressed={listeningClip} onClick={editor.listenClip}><Glyph name={listeningClip?'stop':'play'}/>{listeningClip?copy.stop:copy.listenClip}</button>
      <button type="button" aria-pressed={listeningSource} onClick={editor.listenSource}><Glyph name={listeningSource?'stop':'play'}/>{listeningSource?copy.stop:copy.listenSource}</button>

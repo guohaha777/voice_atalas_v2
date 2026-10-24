@@ -3,6 +3,8 @@ import type {RefObject} from 'react';
 import {audioSupported} from '../../../shared/audio/audioContext';
 import {SequencePlayer} from '../../../shared/audio/SequencePlayer';
 import type {SequenceVoice} from '../../../shared/audio/SequencePlayer';
+import {MIX_RULES} from '@wanwu-v2/sound-rules/mix';
+import type {Arrangement} from '@wanwu-v2/contracts/arrangement';
 import {pieceSeconds,planPlayback} from '../../../shared/creation/arrangementTiming';
 import {EXAMPLE_TIMEOUT_MS} from '../../../shared/creation/exampleSounds';
 import {WorkSoundBank,soundFailure} from '../../../shared/creation/workSounds';
@@ -10,12 +12,10 @@ import type {ComposeNoticeKey,ComposeState} from './composeState';
 import {soundingAt} from './scoreLayout';
 import type {ScoreLayout} from './scoreLayout';
 
-/** The child's sounds together: keep the sum under full scale. */
-const MIX_GAIN=.8;
 const PIECE='piece';
 /** Pressing play this close to the end starts again from the top. */
 const END_SLACK=.05;
-type Music={gain:number;key:string;buffer:(seconds:number)=>Promise<AudioBuffer>};
+type Music={gain:number;key:string;buffer:(arrangement:Arrangement)=>Promise<AudioBuffer>};
 
 /** One clock for the whole piece: play / pause / seek / scrub, the background as its own layer, and what sounds now. */
 export function usePiecePlayback(latest:RefObject<ComposeState>,notify:(key:ComposeNoticeKey,tone?:'info'|'error')=>void,music:Music,layout:ScoreLayout|null){
@@ -68,13 +68,13 @@ export function usePiecePlayback(latest:RefObject<ComposeState>,notify:(key:Comp
    const plan=planPlayback(work),total=pieceSeconds(work);
    const sounds=await Promise.all(plan.map(item=>bank.clip(item.sourceId,item.shape,item.clip,item.analysis)));
    // The background is its own layer: if it cannot be made, the child's sounds still play.
-   const under=await music.buffer(total).catch(()=>{notify('background-failed');return null;});
+   const under=await music.buffer(work).catch(()=>{notify('background-failed');return null;});
    if(mine!==token.current)return;
    const voices:SequenceVoice[]=plan.map((item,index)=>({at:item.startSeconds,buffer:sounds[index]!}));
    if(under)voices.push({at:0,buffer:under,layer:'background'});
    const at=from==='continue'?player.elapsed()??positionRef.current:from;
    halt();
-   await player.play(PIECE,voices,MIX_GAIN,{from:at,length:total,layers:{background:latestGain.current}});
+   await player.play(PIECE,voices,MIX_RULES.childGain,{from:at,length:total,layers:{background:latestGain.current},limiter:MIX_RULES.limiter});
    setClock(at);setEnded(false);
   }catch(reason){if(mine===token.current){const failure=soundFailure(reason);if(failure)notify(failure);}}
   finally{if(mine===token.current)setPreparing(false);}

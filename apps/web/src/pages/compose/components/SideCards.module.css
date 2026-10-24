@@ -30,13 +30,14 @@
 .spanOption[aria-checked=true]{background:var(--wk-selected-fill);color:var(--wk-on-fill);box-shadow:var(--wk-selected-lift);transform:translateY(-1px)}
 .spanOption[aria-checked=true] small,.spanOption[aria-checked=true] small[data-longer]{color:#3f4f16}
 .spanOption:active{transform:translateY(2px);box-shadow:0 1px 0 var(--wk-line-strong)}
+/* Too short for the longest sound: greyed and flat, still tappable so the squirrel can say why. */
+.spanOption[aria-disabled=true]{background:var(--wk-soft);color:#b4baa9;box-shadow:none;cursor:not-allowed;transform:none}
+.spanOption[aria-disabled=true] small{color:#b4baa9}
 .choiceRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:5px;border-radius:20px;background:var(--wk-field);box-shadow:var(--wk-inset)}
 .choiceRow button{min-width:0;overflow-wrap:anywhere;position:relative;min-height:44px;padding:0 4px;border:0;border-radius:15px;background:#fff;color:var(--wk-ink-soft);font-size:var(--font-body);font-weight:700;white-space:nowrap;box-shadow:var(--wk-key);transition:box-shadow .15s,background .25s,transform .15s var(--wk-ease)}
 .choiceRow button:hover{transform:translateY(-2px);box-shadow:var(--wk-key-lg)}
 .choiceRow button[aria-pressed=true]{background:var(--wk-selected-fill);color:var(--wk-on-fill);box-shadow:var(--wk-selected-lift)}
-.choiceRow button[data-busy]{animation:pulse 1s ease-in-out infinite}
 .choiceRow button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--wk-line-strong)}
-.choiceRow small{position:absolute;top:-7px;right:-2px;padding:0 6px;border-radius:8px;background:var(--wk-soft);font-size:var(--font-micro);font-weight:700;color:var(--wk-muted);box-shadow:inset 0 0 0 1px var(--wk-line-strong)}
 /* On / off switch: a solid pill with a white knob and the word inside. */
 .switch{position:relative;display:flex;align-items:center;flex-shrink:0;width:66px;height:36px;padding:0;border:0;border-radius:999px;background:#dfe3d8;transition:background .2s}
 .switch::before{content:"";position:absolute;inset:-4px}
@@ -64,7 +65,6 @@
 .cardTop+.cardLead{margin-top:6px}
 @keyframes pulse{50%{opacity:.4}}
 @media(--reduced-motion){
- .choiceRow button[data-busy]{animation:none}
  .spanOption,.choiceRow button,.trackRow button,.badge svg{transition:none}
 }
 @media(--short){

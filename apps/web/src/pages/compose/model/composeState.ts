@@ -5,11 +5,12 @@ import {SPAN_CHOICES} from '@wanwu-v2/contracts/arrangement';
 import type {Arrangement,SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import {DEFAULT_COMPOSE_SETTINGS,MAX_INSTRUMENTS,WORK_CONTRACT_VERSION,cleanWorkTitle} from '@wanwu-v2/contracts/work';
 import type {ComposeSettings,Inspiration,SavedWork} from '@wanwu-v2/contracts/work';
-import {withSpan} from '../../../shared/creation/arrangementTiming.ts';
+import {fitSpan,spanHolds,withSpan} from '../../../shared/creation/arrangementTiming.ts';
 
-export type ComposeNoticeKey='need-event'|'example-save'|'suggest-off'|'share-off'|'save-failed'|'load-failed'|'no-audio'|'missing-audio'|'background-failed';
+export type ComposeNoticeKey='need-event'|'example-save'|'share-off'|'save-failed'|'load-failed'|'no-audio'|'missing-audio'|'background-failed';
 export type ComposeNotice={tone:'info'|'error';key:ComposeNoticeKey}|null;
-export type ComposeLastAction='span'|'inspiration'|'saved'|null;
+/** `span-blocked`: a length too short for the longest sound was asked for and refused. */
+export type ComposeLastAction='span'|'span-blocked'|'inspiration'|'saved'|null;
 export type ComposeState={
  arrangement:Arrangement|null;
  settings:ComposeSettings;
@@ -39,7 +40,7 @@ export function isShelved(state:ComposeState){
 }
 
 export function composeReducer(state:ComposeState,action:ComposeAction):ComposeState{
- if(action.type==='loaded')return {...initialCompose,arrangement:action.arrangement,settings:action.settings,shelved:action.shelved};
+ if(action.type==='loaded')return {...initialCompose,arrangement:fitSpan(action.arrangement),settings:action.settings,shelved:action.shelved};
  const work=state.arrangement;
  if(!work)return state;
  const background=state.settings.background;
@@ -47,6 +48,8 @@ export function composeReducer(state:ComposeState,action:ComposeAction):ComposeS
   case 'span':
    // Same field as 万物声场: positions stay, tails rescale, rows are re-tidied; switching makes the arrangement the child's.
    if(!SPAN_CHOICES.includes(action.spanSeconds)||action.spanSeconds===work.spanSeconds)return state;
+   // One sound is never longer than the field: a length too short for the longest sound is refused.
+   if(!spanHolds(work,action.spanSeconds))return {...state,notice:null,lastAction:'span-blocked'};
    return {...state,arrangement:{...withSpan(work,action.spanSeconds),origin:'child',updatedAt:action.now.toISOString()},notice:null,lastAction:'span'};
   case 'background-enabled':
    return {...state,settings:{...state.settings,background:{...background,enabled:action.enabled}},notice:null,lastAction:null};
