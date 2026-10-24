@@ -4,13 +4,19 @@
 import {SPAN_CHOICES} from '@wanwu-v2/contracts/arrangement';
 import type {Arrangement,SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import {DEFAULT_COMPOSE_SETTINGS,MAX_INSTRUMENTS,WORK_CONTRACT_VERSION,cleanWorkTitle} from '@wanwu-v2/contracts/work';
-import type {ComposeSettings,Inspiration,SavedWork} from '@wanwu-v2/contracts/work';
+import type {ComposeSettings,Inspiration,Rendering,SavedWork} from '@wanwu-v2/contracts/work';
 import {fitSpan,spanHolds,withSpan} from '../../../shared/creation/arrangementTiming.ts';
 
 export type ComposeNoticeKey='need-event'|'example-save'|'share-off'|'save-failed'|'load-failed'|'no-audio'|'missing-audio'|'background-failed';
 export type ComposeNotice={tone:'info'|'error';key:ComposeNoticeKey}|null;
 /** `span-blocked`: a length too short for the longest sound was asked for and refused. */
-export type ComposeLastAction='span'|'span-blocked'|'inspiration'|'saved'|null;
+export type ComposeLastAction='span'|'span-blocked'|'inspiration'|'saved'
+ /** Background choices the squirrel explains (the card holds only controls). */
+ |'background-on'|'background-off'|'instrument'|'instrument-coming'
+ /** The AI background chip was tapped (switched, or asked about while AI is not open). */
+ |'ai-background'
+ /** An AI background just came back: the squirrel offers it (it is never switched on by itself). */
+ |'ai-ready'|null;
 export type ComposeState={
  arrangement:Arrangement|null;
  settings:ComposeSettings;
@@ -28,7 +34,9 @@ export type ComposeAction=
  |{type:'instrument';id:string}
  |{type:'inspiration';inspiration:Inspiration}
  |{type:'saved';work:SavedWork}
- |{type:'notice';notice:ComposeNotice};
+ |{type:'notice';notice:ComposeNotice}
+ /** Nothing changes but what the squirrel says (tapping the instruments that are not open yet). */
+ |{type:'said';lastAction:'instrument-coming'|'ai-background'|'ai-ready'};
 
 export const initialCompose:ComposeState={arrangement:null,settings:DEFAULT_COMPOSE_SETTINGS,shelved:null,notice:null,lastAction:null};
 
@@ -52,7 +60,7 @@ export function composeReducer(state:ComposeState,action:ComposeAction):ComposeS
    if(!spanHolds(work,action.spanSeconds))return {...state,notice:null,lastAction:'span-blocked'};
    return {...state,arrangement:{...withSpan(work,action.spanSeconds),origin:'child',updatedAt:action.now.toISOString()},notice:null,lastAction:'span'};
   case 'background-enabled':
-   return {...state,settings:{...state.settings,background:{...background,enabled:action.enabled}},notice:null,lastAction:null};
+   return {...state,settings:{...state.settings,background:{...background,enabled:action.enabled}},notice:null,lastAction:action.enabled?'background-on':'background-off'};
   case 'background-volume':{
    const volume=Math.round(Math.min(1,Math.max(0,action.volume))*100)/100;
    return volume===background.volume?state:{...state,settings:{...state.settings,background:{...background,volume}}};
@@ -63,18 +71,22 @@ export function composeReducer(state:ComposeState,action:ComposeAction):ComposeS
    const has=background.instruments.includes(action.id);
    if(!has&&background.instruments.length>=MAX_INSTRUMENTS)return state;
    const instruments=has?background.instruments.filter(id=>id!==action.id):[...background.instruments,action.id];
-   return {...state,settings:{...state.settings,background:{...background,instruments,enabled:has?background.enabled:true}},notice:null,lastAction:null};
+   return {...state,settings:{...state.settings,background:{...background,instruments,enabled:has?background.enabled:true}},notice:null,lastAction:'instrument'};
   }
   case 'inspiration':
    return {...state,settings:{...state.settings,inspiration:action.inspiration},notice:null,lastAction:action.inspiration.kind==='none'?null:'inspiration'};
   case 'saved':return {...state,shelved:action.work,notice:null,lastAction:'saved'};
   case 'notice':return {...state,notice:action.notice};
+  case 'said':return {...state,notice:null,lastAction:action.lastAction};
  }
 }
 
-/** A shelf entry for the current state; null when the title is empty. The arrangement is stored as it is — never altered. */
-export function shelfEntry(state:ComposeState,title:string,now:Date):SavedWork|null{
+/**
+ * A shelf entry for the current state; null when the title is empty. The arrangement is stored as it is — never
+ * altered — with how it was made (`rendering`: the background step the child kept and the rule versions).
+ */
+export function shelfEntry(state:ComposeState,title:string,now:Date,rendering:Rendering):SavedWork|null{
  const clean=cleanWorkTitle(title);
  if(!clean||!state.arrangement)return null;
- return {version:WORK_CONTRACT_VERSION,id:state.arrangement.id,title:clean,arrangement:state.arrangement,settings:state.settings,visibility:'private',savedAt:now.toISOString()};
+ return {version:WORK_CONTRACT_VERSION,id:state.arrangement.id,title:clean,arrangement:state.arrangement,settings:state.settings,rendering,visibility:'private',savedAt:now.toISOString()};
 }

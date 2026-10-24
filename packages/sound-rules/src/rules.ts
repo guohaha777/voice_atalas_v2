@@ -66,3 +66,6 @@ export const SHAPING_RULES:ShapingRules=load(shapingFile,shapingProblems(shaping
 export const BACKGROUND_RULES:BackgroundRules=load(backgroundFile as BackgroundRules,backgroundProblems(backgroundFile as BackgroundRules));
 export const MIX_RULES:MixRules=load(mixFile,mixProblems(mixFile));
 export const TEXTBOOK_MATCH_RULES:TextbookMatchRules=load(textbookMatchFile,textbookMatchProblems(textbookMatchFile));
+
+/** Versions of every rule file, recorded with a saved piece and sent with an AI background request. */
+export const RULE_VERSIONS={analysis:ANALYSIS_RULES.version,shaping:SHAPING_RULES.version,background:BACKGROUND_RULES.version,mix:MIX_RULES.version};

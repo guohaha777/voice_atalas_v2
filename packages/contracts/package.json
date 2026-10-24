@@ -8,6 +8,7 @@
   "./sound": "./src/sound.ts",
   "./arrangement": "./src/arrangement.ts",
   "./work": "./src/work.ts",
-  "./textbook": "./src/textbook.ts"
+  "./textbook": "./src/textbook.ts",
+  "./background": "./src/background.ts"
  }
 }

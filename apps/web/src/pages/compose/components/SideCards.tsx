@@ -51,34 +51,42 @@ export function InspirationCard({compose,onOpen}:{compose:Compose;onOpen:(tab:In
  </section>;
 }
 
-/** 背景音乐: its own layer under the child's sounds — on / off, who plays it (any instruments, or none = as generated), how loud. */
+/** 背景音乐: its own layer under the child's sounds — on / off, who plays it (any instruments, or none = as generated), how
+ *  loud. Only controls here: what the background follows and who plays what is said by the squirrel. */
 export function BackgroundCard({compose}:{compose:Compose}){
  const {background}=compose.state.settings;
  const chosen=new Set(compose.chosen.map(item=>item.id));
+ const ai=compose.ai,aiReady=ai.status==='ready';
  return <section className={styles.card} aria-labelledby="background-title" data-off={!background.enabled||undefined}>
   <div className={styles.cardTop}>
-   <h3 id="background-title" className={styles.cardTitle}><Badge icon="note" tone="lime"/>{composeCopy.backgroundTitle}</h3>
+   <h3 id="background-title" className={styles.cardTitle}><Badge icon="note" tone="lime"/>{composeCopy.backgroundTitle}
+    {/* Which step of the background chain plays now, and the AI chip: locked while AI is not open, a switch once an
+        AI background is ready. The squirrel says the rest. */}
+    <small className={styles.sourceTag}>{backgroundCopy.source[compose.aiSource]}</small>
+    <button type="button" className={styles.aiChip} data-state={ai.status} aria-pressed={aiReady?compose.usingAi:undefined}
+     aria-label={composeCopy.aiLabel(ai.status==='ready'?backgroundCopy.source[ai.source]:null)} onClick={compose.tapAi}>
+     <Glyph name={aiReady?'bulb':'lock'}/>{composeCopy.aiChip}
+    </button>
+   </h3>
    <button type="button" role="switch" aria-checked={background.enabled} aria-label={composeCopy.backgroundToggle} className={styles.switch}
     onClick={()=>compose.setBackgroundEnabled(!background.enabled)}>
     <span>{background.enabled?composeCopy.backgroundOn:composeCopy.backgroundOff}</span><i/>
    </button>
   </div>
-  <p className={styles.cardLead}>{!background.enabled?composeCopy.backgroundOffLead:chosen.size?composeCopy.instrumentsPlaying(backgroundCopy.parts(compose.parts,Object.fromEntries(compose.chosen.map(item=>[item.id,item.name])))):composeCopy.instrumentsNone}</p>
   <div className={styles.trackRow} role="group" aria-label={composeCopy.instrumentsLabel}>
    {compose.instruments.map(item=><button key={item.id} type="button" aria-pressed={chosen.has(item.id)} onClick={()=>compose.toggleInstrument(item.id)}>
     {chosen.has(item.id)&&<Glyph name="check"/>}{item.name}
    </button>)}
-   {/* Instruments planned for later: one quiet chip, not tappable. */}
-   {compose.comingInstruments.length>0&&<span className={styles.coming} title={compose.comingInstruments.join('、')}><Glyph name="plus"/>{composeCopy.instrumentMore}<small>{composeCopy.instrumentComing}</small></span>}
+   {/* Instruments planned for later: one quiet chip; tapping it lets the squirrel say they are not open yet. */}
+   {compose.comingInstruments.length>0&&<button type="button" className={styles.coming} aria-label={composeCopy.instrumentComing(compose.comingInstruments.join('、'))} onClick={compose.showComing}>
+    <Glyph name="plus"/>{composeCopy.instrumentMore}
+   </button>}
   </div>
   <label className={styles.volume}>
    <Glyph name="volume"/>
    <span className={styles.srOnly}>{composeCopy.volumeLabel}</span>
    <input type="range" min={0} max={1} step={.05} value={background.volume} disabled={!background.enabled}
     style={{'--fill':`${background.volume*100}%`} as CSSProperties} onChange={event=>compose.setBackgroundVolume(Number(event.target.value))}/>
-   <span aria-hidden="true">{background.volume<.5?composeCopy.volumeLow:composeCopy.volumeHigh}</span>
   </label>
-  <p className={styles.cardFoot}>{compose.backgroundPlan&&background.enabled
-   ?`${backgroundCopy.source[compose.backgroundPlan.source]}：${backgroundCopy.describe(compose.backgroundPlan,compose.entry?.title??null)}。`:''}{composeCopy.backgroundExample}</p>
  </section>;
 }

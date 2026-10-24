@@ -22,6 +22,8 @@ export function useBackgroundLayer(settings:ComposeSettings,instruments:readonly
  /** Instruments playing the background; none chosen = the original voice. */
  const chosen=useMemo(()=>background.instruments.flatMap(id=>instruments.filter(item=>item.id===id)),[background.instruments,instruments]);
  const parts=useMemo(()=>assignParts(chosen),[chosen]);
+ /** How each chosen instrument sounds (by id), for the renderer. */
+ const voices=useMemo(()=>Object.fromEntries(chosen.map(item=>[item.id,item.recipe])),[chosen]);
  const track=inspirationTrack(inspiration,tracks);
  const gain=background.enabled?background.volume*MIX_RULES.backgroundMaxGain:0;
  /** Changes when who plays it or what it borrows changes (the arrangement is read at play time). */
@@ -31,12 +33,12 @@ export function useBackgroundLayer(settings:ComposeSettings,instruments:readonly
   const input=backgroundInput(arrangement,inspiration,tracks),cacheKey=`${key}|${JSON.stringify(input)}`,cache=renders.current;
   let render=cache.get(cacheKey);
   if(!render){
-   render=renderBackground(backgroundPlan(input),parts,Object.fromEntries(chosen.map(item=>[item.id,item.recipe])));
+   render=renderBackground(backgroundPlan(input),parts,voices);
    cache.set(cacheKey,render);render.catch(()=>cache.delete(cacheKey));
    while(cache.size>KEEP)cache.delete(cache.keys().next().value!);
   }
   return render;
  };
- return {enabled:background.enabled,chosen,parts,track,gain,key,plan,buffer};
+ return {enabled:background.enabled,chosen,parts,voices,track,gain,key,plan,buffer};
 }
 export type BackgroundLayer=ReturnType<typeof useBackgroundLayer>;

@@ -95,7 +95,8 @@
 - ✅ 12 录音响度统一 → 已放进塑形规则。
 - ✅ 13 总线限幅（`mix.v1.json` 的 `limiter`，两页共用）。
 - 14 音乐小发现：阈值暂不动；“背景接话”这条用户决定先不做。
-- 15 规则集中、版本化，以及最终音频由谁产出：规则包和版本文件已经有了。**还没做**：作品里记录所用规则版本（`rules:{analysis, shaping, background}`），以及“浏览器只做预览，分享和书架的正式音频由后端按同一规则混音”的约定，写进接口协议。
+- ✅ 15 规则集中、版本化：作品保存时记录 `rendering`（背景来源 + 各规则版本），契约写明“浏览器只预览，书架和分享的正式音频由后端按同一版本规则混音”（2026-10-24）。接口协议文档仍待最后统一生成。
+- ✅ 新增（2026-10-24）：成曲页 AI 背景的数据契约（`contracts/background`）、端口与降级链（`shared/background/generator.ts`，mock 如实未开放）、界面状态（“AI”小标签，说明由小松鼠说）；课本歌曲特征随请求发送。背景卡片去掉说明小字。
 
 背景规则已照声音规则的做法落地（2026-10-24）：数值在 `background.v1.json`、`mix.v1.json`、`textbook-match.v1.json`，算法是纯函数，页面不写数值；背景层移到 `apps/web/src/shared/background/`，两页共用。课本歌曲的“换几种样子”和“碰一碰”讲解、AI 背景端口实现、作品记录规则版本还没做。
 
@@ -119,7 +120,7 @@ scripts/build-library-audio.mjs  声音库生成脚本；scripts/check-assets.mj
 
 ```sh
 cd /Users/hahaking/Projects/voice_atalas/wanwu-shengpu-v2
-npm test                # 101 项（应用 70 + 规则包 31），必须全过
+npm test                # 103 项（应用 72 + 规则包 31），必须全过
 npm run build           # 类型检查 + 资源检查（含声音库与体检规则版本）+ 样式结构检查 + 构建
 npm run assets:library  # 只在增改声音库原件或改了体检规则后运行（需要 ffmpeg）
 ```

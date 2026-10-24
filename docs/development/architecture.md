@@ -47,7 +47,7 @@
 ## 万物成曲页与作品书架
 
 - 路由 `/compose`（在声场时预取）和 `/works`（在成曲时预取），各自分包。`pages/compose/` 分为 `components/`（曲谱卡、播放条、右栏三卡、底栏与特征面板、弹窗）、`model/`（纯 reducer `composeState.ts`、曲谱派生 `scoreLayout.ts`、音乐特征 `discoveries.ts`、编排 hook `useCompose.ts`，拆出 `usePiecePlayback`（同一时钟的播放 / 暂停 / 跳转 / 拖动））、`config/`（文案、特征讲解文案、松鼠向导）、`services/`（`ComposeRepository` 端口 + mock，文件头列出预留 REST 路径）。`pages/works/` 同样分层，端口 `ShelfRepository`。
-- 背景层两页共用（2026-10-24）：`shared/background/`（示例乐器与分工、`BackgroundLibrary` 端口 + mock、从作品算规则输入、`useBackgroundLayer` 渲染缓存与音量、来源说明文案）和 `shared/audio/renderBackground.ts`（只演奏规则给的音符）。音符、结尾、让位、限幅都来自 `packages/sound-rules`。
+- 背景层两页共用（2026-10-24）：`shared/background/`（示例乐器与分工、`BackgroundLibrary` 端口 + mock、从作品算规则输入、`useBackgroundLayer` 渲染缓存与音量、来源说明文案）和 `shared/audio/renderBackground.ts`（只演奏规则给的音符）。音符、结尾、让位、限幅都来自 `packages/sound-rules`。AI 背景端口 `shared/background/generator.ts`（降级链与超时，mock 未开放），成曲页 `model/useAiBackground.ts` 只在孩子选择时换上 AI 背景。
 - 课本灵感是共用模块 `shared/inspiration/`（特征模板目录端口 `InspirationCatalog` 与示例模板、帮我找找 `matches.ts`、试听合成、教学音乐本机选择与后端流程说明、`InspirationDialog`），万物声场摆放前就能选，万物成曲沿用同一个选择。模板契约是 `@wanwu-v2/contracts/textbook`。
 - 曲谱只从 `arrangement-v1` 派生，不存储。声场与成曲共用 `shared/creation/arrangementTiming.ts`（开始秒、听到的长度、整首长度、行整理、切换长度）、`exampleWork.ts`（示例单元与示例摆放）、`workSounds.ts`（音源加载与塑形缓存）。
 - 播放只有一个时间：`shared/audio/SequencePlayer` 支持从任意秒开始、整首长度和分层音量；竖线、进度条、时钟、高亮都读它。背景是独立的 `background` 层。

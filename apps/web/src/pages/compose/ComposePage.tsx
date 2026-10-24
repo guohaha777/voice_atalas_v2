@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {flowSteps} from '../../app/navigation';
+import {backgroundCopy} from '../../shared/background/copy';
 import {longestSound,minSpan} from '../../shared/creation/arrangementTiming';
 import {FlowHeader} from '../../shared/ui/FlowHeader';
 import {Glyph} from '../../shared/ui/PaperIcon';
@@ -17,6 +18,27 @@ import {ScoreCard} from './components/ScoreCard';
 import {BackgroundCard,InspirationCard,SpanCard} from './components/SideCards';
 import styles from './ComposePage.module.css';
 
+/** What the squirrel says about the background switch and instruments (the card itself holds only controls). */
+function spokenBackground(compose:Compose){
+ const plan=compose.backgroundPlan;
+ switch(compose.state.lastAction){
+  case 'background-on':return plan?guideLines.backgroundOn(`${backgroundCopy.source[plan.source]}，${backgroundCopy.describe(plan,compose.entry?.title??null)}`):null;
+  case 'background-off':return guideLines.backgroundOff;
+  case 'instrument':
+   return compose.chosen.length?guideLines.instruments(backgroundCopy.parts(compose.parts,Object.fromEntries(compose.chosen.map(item=>[item.id,item.name])))):guideLines.instrumentsNone;
+  case 'instrument-coming':return guideLines.instrumentsComing(compose.comingInstruments.join('、'));
+  case 'ai-background':{
+   const ai=compose.ai;
+   if(ai.status==='closed')return guideLines.aiClosed;
+   if(ai.status==='working')return guideLines.aiWorking;
+   if(ai.status==='unavailable')return guideLines.aiUnavailable[ai.reason];
+   return compose.usingAi?guideLines.aiOn(backgroundCopy.source[ai.source]):guideLines.aiOff;
+  }
+  case 'ai-ready':return compose.ai.status==='ready'&&!compose.usingAi?guideLines.aiReady(backgroundCopy.source[compose.ai.source]):null;
+  default:return null;
+ }
+}
+
 /** The squirrel speaks for the page: a notice (if any) first, otherwise what to do next. One voice, no repeated hints. */
 function guideText(compose:Compose){
  const {arrangement,lastAction,notice}=compose.state;
@@ -28,6 +50,7 @@ function guideText(compose:Compose){
  if(compose.ended)return guideLines.ended;
  if(lastAction==='span')return guideLines.span(arrangement.spanSeconds);
  if(lastAction==='span-blocked'){const longest=longestSound(arrangement);if(longest)return guideLines.spanBlocked(longest.unit.name,Math.ceil(longest.seconds-1e-6),minSpan(arrangement));}
+ const said=spokenBackground(compose);if(said)return said;
  if(lastAction==='inspiration')return guideLines.inspiration;
  if(compose.now>0)return guideLines.paused;
  if(arrangement.origin==='example')return guideLines.example;

@@ -6,6 +6,8 @@
 // child's sounds, their excerpts or their placement.
 import {parseArrangement} from './arrangement.ts';
 import type {Arrangement} from './arrangement';
+import {BACKGROUND_SOURCES} from './background.ts';
+import type {BackgroundSource,RuleVersions} from './background';
 
 export const WORK_CONTRACT_VERSION='work-v1' as const;
 
@@ -37,6 +39,13 @@ export const DEFAULT_COMPOSE_SETTINGS:ComposeSettings={background:{enabled:true,
 export type Visibility='private'|'class'|'school'|'region'|'public';
 export const VISIBILITIES:readonly Visibility[]=['private','class','school','region','public'];
 
+/**
+ * How the saved piece was made: which step of the background chain made the background the child kept, and the
+ * version of every rule file. The browser only previews; the shelf's and a share's audio is mixed by the server from
+ * the arrangement with these same rules, so an old work is mixed again the way it was made.
+ */
+export type Rendering={background:BackgroundSource;rules:RuleVersions};
+
 export const WORK_TITLE_MAX=16;
 export type SavedWork={
  version:typeof WORK_CONTRACT_VERSION;
@@ -45,6 +54,7 @@ export type SavedWork={
  title:string;
  arrangement:Arrangement;
  settings:ComposeSettings;
+ rendering:Rendering;
  visibility:Visibility;
  savedAt:string;
 };
@@ -71,6 +81,13 @@ export function parseComposeSettings(value:unknown):ComposeSettings|null{
  return raw as ComposeSettings;
 }
 
+export function isRendering(value:unknown):value is Rendering{
+ if(!value||typeof value!=='object')return false;
+ const raw=value as Record<string,unknown>,rules=raw.rules as Record<string,unknown>|null;
+ return BACKGROUND_SOURCES.includes(raw.background as BackgroundSource)&&!!rules&&typeof rules==='object'
+  &&['analysis','shaping','background','mix'].every(key=>nonEmpty(rules[key]));
+}
+
 /** Validates a saved work (future API or storage) before the UI trusts it. */
 export function parseSavedWork(value:unknown):SavedWork|null{
  if(!value||typeof value!=='object')return null;
@@ -79,6 +96,6 @@ export function parseSavedWork(value:unknown):SavedWork|null{
  if(typeof raw.title!=='string'||cleanWorkTitle(raw.title)!==raw.title)return null;
  if(!VISIBILITIES.includes(raw.visibility as Visibility))return null;
  const arrangement=parseArrangement(raw.arrangement);
- if(!arrangement||arrangement.id!==raw.id||!parseComposeSettings(raw.settings))return null;
+ if(!arrangement||arrangement.id!==raw.id||!parseComposeSettings(raw.settings)||!isRendering(raw.rendering))return null;
  return raw as SavedWork;
 }

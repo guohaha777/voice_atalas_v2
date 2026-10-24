@@ -13,7 +13,11 @@ import {composeReducer,initialCompose,isShelved,shelfEntry} from '../src/pages/c
 import type {ComposeState} from '../src/pages/compose/model/composeState.ts';
 import {findDiscoveries} from '../src/pages/compose/model/discoveries.ts';
 import {backgroundPlan} from '@wanwu-v2/sound-rules/background';
-import {backgroundInput} from '../src/shared/background/backgroundLayer.ts';
+import {RULE_VERSIONS} from '@wanwu-v2/sound-rules/rules';
+import {isBackgroundBrief,parseBackgroundResult} from '@wanwu-v2/contracts/background';
+import {backgroundBrief,backgroundInput} from '../src/shared/background/backgroundLayer.ts';
+import {offlineBackgroundGenerator,runBackgroundChain} from '../src/shared/background/generator.ts';
+import type {BackgroundGenerator} from '../src/shared/background/generator.ts';
 import {exampleTracks} from '../src/shared/inspiration/exampleTracks.ts';
 import {inspirationMatches} from '../src/shared/inspiration/matches.ts';
 import {isTextbookTrack} from '@wanwu-v2/contracts/textbook';
@@ -21,6 +25,7 @@ import {parseRoute,routeHref} from '../src/app/router.ts';
 import {previewNotes} from '../src/shared/inspiration/rhythmPreview.ts';
 
 const now=new Date('2026-10-23T08:00:00.000Z');
+const rendering={background:'local-rules' as const,rules:{...RULE_VERSIONS}};
 const once={pitch:'mid',duration:'short',contour:'flat',intensity:'soft',pattern:'once'} as const;
 const unit=(id:string,markerIndex:number,name=id):SoundUnitDraft=>({version:SOUND_CONTRACT_VERSION,id,sourceId:`recording:${id}`,name,maker:null,markerIndex,
  shape:{...once},input:'manual',createdAt:now.toISOString()});
@@ -86,12 +91,15 @@ test('background and textbook inspiration never touch the child’s sounds or pl
 
 test('saving puts an exact snapshot on the shelf; any later change shows as not saved',()=>{
  let state=loaded(work());
- assert.equal(shelfEntry(state,'   ',now),null);
- const entry=shelfEntry(state,'  青蛙  下雨歌 ',now)!;
+ assert.equal(shelfEntry(state,'   ',now,rendering),null);
+ const entry=shelfEntry(state,'  青蛙  下雨歌 ',now,rendering)!;
  assert.equal(entry.title,'青蛙 下雨歌');assert.equal(entry.visibility,'private');assert.equal(entry.arrangement,state.arrangement);
  assert.ok(parseSavedWork(entry));
  assert.equal(parseSavedWork({...entry,visibility:'everyone'}),null);
  assert.equal(parseSavedWork({...entry,id:'other'}),null,'the work id is the arrangement id');
+ assert.deepEqual(entry.rendering,rendering,'it records the background kept and every rule version');
+ assert.equal(parseSavedWork({...entry,rendering:{...rendering,background:'magic'}}),null);
+ assert.equal(parseSavedWork({...entry,rendering:{background:'local-rules',rules:{...RULE_VERSIONS,mix:''}}}),null);
  assert.equal(cleanWorkTitle('一二三四五六七八九十一二三四五六七'),'一二三四五六七八九十一二三四五六');
  state=composeReducer(state,{type:'saved',work:entry});
  assert.equal(isShelved(state),true);
@@ -100,7 +108,7 @@ test('saving puts an exact snapshot on the shelf; any later change shows as not 
 });
 
 test('the shelf keeps this visit’s works newest first and replaces a re-saved one; the session reopens and resets',()=>{
- const shelf=new WorkShelf(),first=shelfEntry(loaded(work()),'一',now)!,second=shelfEntry(loaded(work({id:'work:2'})),'二',now)!;
+ const shelf=new WorkShelf(),first=shelfEntry(loaded(work()),'一',now,rendering)!,second=shelfEntry(loaded(work({id:'work:2'})),'二',now,rendering)!;
  assert.equal(shelf.put(first),true);assert.equal(shelf.put(second),true);
  assert.deepEqual(shelf.list().map(item=>item.title),['二','一']);
  shelf.put({...first,title:'一改'});
@@ -158,6 +166,35 @@ test('万物成曲 refuses a length too short for the longest sound',()=>{
  const refused=composeReducer(state,{type:'span',spanSeconds:20,now});
  assert.equal(refused.arrangement,state.arrangement);assert.equal(refused.lastAction,'span-blocked');
  assert.equal(composeReducer(state,{type:'span',spanSeconds:45,now}).arrangement!.spanSeconds,45);
+});
+
+test('the AI background request is an anonymous brief with the textbook song\'s features only',()=>{
+ const piece=work({events:[ev('a',0,0,4),ev('b',.5,0,3)],mood:{kind:'preset',id:'sad'}});
+ assert.equal(backgroundBrief(work({events:[]}),{kind:'none'},exampleTracks,[]),null,'nothing placed: nothing to ask');
+ const brief=backgroundBrief(piece,{kind:'textbook',entryId:'tb:mock:lullaby'},exampleTracks,['inst:local:organ'])!;
+ assert.ok(isBackgroundBrief(brief));
+ assert.deepEqual([brief.tempo,brief.metre,brief.mood,brief.textbook?.id,brief.textbook?.rhythmCell],[66,3,'sad','tb:mock:lullaby',[2,1]]);
+ assert.deepEqual(brief.sounding,[{start:0,end:4},{start:15,end:18}]);
+ assert.deepEqual(brief.rules,RULE_VERSIONS);
+ const text=JSON.stringify(brief);
+ for(const secret of ['蛙鸣','滴水','recording:','摇篮曲','像摇篮'])assert.ok(!text.includes(secret),`no ${secret} in the brief`);
+});
+
+test('the AI background chain: closed sends nothing; steps are tried in order, each with a timeout; bad results are refused',async()=>{
+ const brief=backgroundBrief(work({events:[ev('a',0,0,4)]}),{kind:'none'},exampleTracks,[])!;
+ const never=new AbortController().signal;
+ assert.deepEqual(await runBackgroundChain(offlineBackgroundGenerator,brief,never),{status:'unavailable',reason:'not-open'});
+ const asked:string[]=[];
+ const notes=[{at:0,length:2,midi:60,part:'chord',accent:0}];
+ const fake=(answers:Record<string,unknown|'hang'>):BackgroundGenerator=>({open:['audio-ai','notes-ai'],
+  generate:(_,step)=>{asked.push(step);const answer=answers[step];return answer==='hang'?new Promise(()=>{}):Promise.resolve(answer);}});
+ const ready=await runBackgroundChain(fake({'audio-ai':{status:'unavailable',reason:'quota'},'notes-ai':{status:'ready',source:'notes-ai',notes,model:'qwen',promptVersion:'p1'}}),brief,never);
+ assert.equal(ready.status,'ready');assert.deepEqual(asked,['audio-ai','notes-ai'],'audio first, then notes');
+ const slow=await runBackgroundChain(fake({'audio-ai':'hang','notes-ai':'hang'}),brief,never,{'audio-ai':20,'notes-ai':20});
+ assert.deepEqual(slow,{status:'unavailable',reason:'timeout'},'too slow: keep the local background');
+ const tooLong=await runBackgroundChain(fake({'audio-ai':{status:'ready',source:'audio-ai',audioUrl:'https://x/a.mp3',durationMs:99_000,model:'fun',promptVersion:'p'},'notes-ai':{status:'ready',source:'notes-ai',notes:[{...notes[0],length:99}],model:'q',promptVersion:'p'}}),brief,never);
+ assert.deepEqual(tooLong,{status:'unavailable',reason:'failed'},'a background longer than the piece is refused');
+ assert.equal(parseBackgroundResult({status:'ready',source:'audio-ai',audioUrl:'http://x/a.mp3',durationMs:1000,model:'f',promptVersion:'p'},30),null,'https only');
 });
 
 test('routes /compose and /works',()=>{

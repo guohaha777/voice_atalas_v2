@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useReducer,useRef,useState} from 'react';
-import type {SpanSeconds} from '@wanwu-v2/contracts/arrangement';
+import type {Arrangement,SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import type {Inspiration} from '@wanwu-v2/contracts/work';
 import type {TextbookTrack} from '@wanwu-v2/contracts/textbook';
 import {spanHolds} from '../../../shared/creation/arrangementTiming';
@@ -10,6 +10,10 @@ import type {Instrument} from '../../../shared/background/instruments';
 import {mockBackgroundLibrary} from '../../../shared/background/library';
 import type {BackgroundLibrary} from '../../../shared/background/library';
 import {useBackgroundLayer} from '../../../shared/background/useBackgroundLayer';
+import {offlineBackgroundGenerator} from '../../../shared/background/generator';
+import type {BackgroundGenerator} from '../../../shared/background/generator';
+import {RULE_VERSIONS} from '@wanwu-v2/sound-rules/rules';
+import {useAiBackground} from './useAiBackground';
 import {mockComposeRepository} from '../services/composeRepository';
 import type {ComposeRepository} from '../services/composeRepository';
 import {composeReducer,initialCompose,isShelved,shelfEntry} from './composeState';
@@ -20,7 +24,7 @@ import {usePiecePlayback} from './usePiecePlayback';
 
 /** 万物成曲: listen to the work as a piece, set its length, inspiration and background, then put it on the shelf.
  *  The playback clock lives in usePiecePlayback and the background layer (shared with 万物声场) in useBackgroundLayer. */
-export function useCompose(repository:ComposeRepository=mockComposeRepository,backgrounds:BackgroundLibrary=mockBackgroundLibrary,inspirations:InspirationCatalog=mockInspirationCatalog){
+export function useCompose(repository:ComposeRepository=mockComposeRepository,backgrounds:BackgroundLibrary=mockBackgroundLibrary,inspirations:InspirationCatalog=mockInspirationCatalog,generator:BackgroundGenerator=offlineBackgroundGenerator){
  const [state,dispatch]=useReducer(composeReducer,initialCompose);
  const [shelfCount,setShelfCount]=useState(0);
  const [instruments,setInstruments]=useState<readonly Instrument[]>([]);
@@ -56,7 +60,12 @@ export function useCompose(repository:ComposeRepository=mockComposeRepository,ba
  // The plan only changes with the arrangement and what the background borrows.
  [state.arrangement,music.key]);
  const discoveries=useMemo(()=>state.arrangement?findDiscoveries(state.arrangement):[],[state.arrangement]);
- const playback=usePiecePlayback(latest,notify,music,layout);
+ /** AI background on top of the local one: asked in the background, used only when the child switches to it. */
+ const ai=useAiBackground(state.arrangement,state.settings,entries,music,generator);
+ // When an AI background comes back, the squirrel offers it; the child decides.
+ useEffect(()=>{if(ai.state.status==='ready')dispatch({type:'said',lastAction:'ai-ready'});},[ai.state]);
+ const played={gain:music.gain,key:`${music.key}|${ai.source}`,buffer:(arrangement:Arrangement)=>ai.buffer(arrangement)??music.buffer(arrangement)};
+ const playback=usePiecePlayback(latest,notify,played,layout);
 
  // ----- settings -----
  /** A new length restarts the piece; a length too short for the longest sound is only explained (playback goes on). */
@@ -78,7 +87,7 @@ export function useCompose(repository:ComposeRepository=mockComposeRepository,ba
  const saveWork=async(title:string)=>{
   const current=latest.current;
   if(!canSave())return false;
-  const work=shelfEntry(current,title,new Date());
+  const work=shelfEntry(current,title,new Date(),{background:ai.source,rules:{...RULE_VERSIONS}});
   if(!work)return false;
   const result=await repository.saveWork(work);
   if(result.status==='failed'){notify('save-failed');return false;}
@@ -94,12 +103,17 @@ export function useCompose(repository:ComposeRepository=mockComposeRepository,ba
   playing:playback.playing,preparing:playback.preparing,ended:playback.ended,
   /** The one playback time (seconds) the playhead, progress bar and highlights read. */
   now:playback.now,total:playback.total,sounding:playback.sounding,
-  shelved:isShelved(state),shelfCount,
+  // On the shelf only if the background kept is the one saved, too.
+  shelved:isShelved(state)&&state.shelved?.rendering.background===ai.source,shelfCount,
+  ai:ai.state,aiSource:ai.source,usingAi:ai.using,
   togglePlay:playback.togglePlay,restart:playback.restart,playFrom:playback.playFrom,scrubTo:playback.scrubTo,endScrub:playback.endScrub,
   setSpan,setInspiration,
   setBackgroundEnabled:(enabled:boolean)=>dispatch({type:'background-enabled',enabled}),
   setBackgroundVolume:(volume:number)=>dispatch({type:'background-volume',volume}),
   toggleInstrument:(id:string)=>dispatch({type:'instrument',id}),
+  showComing:()=>dispatch({type:'said',lastAction:'instrument-coming'}),
+  /** The AI chip: switch between AI and local when an AI background is ready; otherwise the squirrel says why not. */
+  tapAi:()=>{ai.toggle();dispatch({type:'said',lastAction:'ai-background'});},
   canSave,saveWork,share,startNew,
   clearNotice:()=>dispatch({type:'notice',notice:null}),
  };
