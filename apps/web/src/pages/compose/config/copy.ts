@@ -55,12 +55,15 @@ export const composeCopy={
  instrumentsLabel:'选乐器演奏背景（可多选，再点一下取消；不选就是原始背景）',
  instrumentMore:'更多',instrumentComing:(names:string)=>`更多乐器：${names}，即将开放`,
  volumeLabel:'背景音量',
- aiChip:'AI',
- aiLabel:(ready:string|null)=>ready?`${ready}的背景：点一下换上或换回本地`:'AI 背景（暂未开放）',
+ /** The background source tag: what plays now, and what a tap would switch to (only once an AI background is ready). */
+ sourceLabel:(now:string,next:string|null)=>next?`现在是${now}的背景，点一下换成${next}`:`现在是${now}的背景（AI 背景暂未开放，点一下听说明）`,
  // Discovery
  discoveryTitle:'音乐小发现',discoveryNote:'（按摆放数出来的）',discoveryNext:'换一条',
  discovery:(item:Discovery)=>discoveryText(item).line,
  bulbOpen:'点小灯泡，看这首音乐有什么特征',bulbClose:'收起',
+ variationLabel:'课本歌曲换几种样子',
+ talkTitle:'课本讲解',talkSource:'本地模板 · AI 润色未开放',
+ talkParts:{feature:'特点',shape:'这次的样子',meeting:'碰一碰',task:'试一试'},
  teachTitle:'这首音乐有什么特征',
  teachLead:'每一条特征都是从这首曲子的摆放里数出来的，可以边播放边讲给孩子听。',
  teachIdea:'音乐知识',teachAsk:'可以问孩子',

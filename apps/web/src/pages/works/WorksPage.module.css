@@ -26,10 +26,30 @@
 .factMood{width:20px;height:20px}
 .meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0;font-size:var(--font-label);font-weight:600;color:var(--wk-muted)}
 .meta span{min-width:0;display:inline-flex;align-items:center;gap:4px}.meta svg{width:13px;height:13px}
-.open{white-space:normal;min-width:0;display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;margin:12px 16px 16px;border:0;border-radius:999px;background:var(--wk-green-fill);color:var(--wk-on-fill);font-size:var(--font-control);font-weight:800;box-shadow:var(--wk-green-lift);transition:transform .12s}
-.open span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffffffa6}
-.open svg{width:15px;height:15px}
-.open:active{transform:scale(.97)}
+/* Title with quiet 改名 / 拿下来 buttons at its side. */
+.titleRow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.tools{display:flex;flex-shrink:0;gap:2px;margin:-4px -8px 0 0}
+.tools button{display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:50%;background:none;color:var(--wk-muted);transition:background .15s,color .15s}
+.tools button:hover{background:var(--wk-soft);color:var(--wk-ink)}
+.tools svg{width:20px;height:20px}
+/* 听一听 (here, on the shelf) and 打开曲谱 side by side. */
+.cardActions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 16px 16px}
+.play,.open{white-space:normal;min-width:0;flex:1 1 120px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border:0;border-radius:999px;font-size:var(--font-control);font-weight:800;transition:transform .12s}
+.play{background:var(--wk-green-fill);color:var(--wk-on-fill);box-shadow:var(--wk-green-lift)}
+.play span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffffffa6}
+.play svg{width:15px;height:15px}
+.play[aria-pressed=true]{background:var(--wk-sun-fill);box-shadow:0 4px 10px #ffd84a66}
+.play[data-busy] span{animation:pulse 1s ease-in-out infinite}
+.open{background:#fff;color:var(--wk-on-fill);box-shadow:var(--wk-outline-lift)}
+.open svg{width:16px;height:16px}
+.play:active,.open:active{transform:scale(.97)}
+/* While it plays: a playhead on the small score, and the sounding markers lift. */
+.miniPlayhead{position:absolute;top:4px;bottom:4px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--wk-green-deep)}
+.miniItem[data-sounding] .miniMarker{transform:scale(1.18);transition:transform .15s}
+@keyframes pulse{50%{opacity:.4}}
+/* Rename / take-off dialogs. */
+.renameField{display:block;width:100%;min-height:52px;margin-top:20px;padding:0 18px;border:0;border-radius:16px;background:var(--wk-soft);font:inherit;font-size:var(--font-control-lg);font-weight:700;color:var(--wk-ink);box-shadow:inset 0 0 0 2px var(--wk-line-strong);outline:0}
+.renameField:focus-visible{box-shadow:inset 0 0 0 3px var(--wk-green-deep)}
 
 .empty{display:flex;flex-direction:column;align-items:center;margin:4vh auto 0;max-width:520px;padding:36px 28px 32px;border-radius:30px;background:#fff;box-shadow:var(--wk-shadow);text-align:center;animation:global(wk-rise) .5s .05s var(--wk-ease) both}
 .emptyArt{max-width:100%;aspect-ratio:1;display:grid;place-items:center;width:132px;height:132px;border-radius:50%;background:radial-gradient(120% 120% at 30% 22%,#fff 0%,#f1fbe4 48%,#dcf3c0 100%)}
@@ -38,7 +58,7 @@
 .empty p{margin:8px 0 0;font-size:var(--font-body);font-weight:500;line-height:1.7;color:var(--wk-muted)}
 .emptyActions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:22px}
 
-@media(--reduced-motion){.grid,.empty{animation:none}}
+@media(--reduced-motion){.grid,.empty,.play[data-busy] span{animation:none}.miniItem[data-sounding] .miniMarker{transition:none}}
 @media(--phone){
  .page{padding:0 14px 24px}
  .grid{grid-template-columns:minmax(0,1fr)}

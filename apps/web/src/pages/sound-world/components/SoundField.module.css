@@ -35,6 +35,9 @@
 .placedName small{margin-left:6px;font-size:.92em;font-weight:600;color:var(--wk-muted)}
 .placedName{max-width:calc(var(--mk) + 84px);padding:1px 9px;border-radius:999px;background:#fff;box-shadow:0 2px 0 var(--wk-line-strong);font-size:var(--font-small);font-weight:700;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .placed[data-sounding] .placedName{background:var(--wk-sun)}
+/* 课堂大屏: bigger markers, and the sounding one grows and glows so the back row can follow. */
+:global(:root[data-classroom]) .field{--mk:clamp(72px,11vh,112px)}
+:global(:root[data-classroom]) .placed[data-sounding] .placedMarker{scale:1.18;filter:drop-shadow(0 0 18px #ffd84a) drop-shadow(0 0 6px #ffd84a) drop-shadow(0 6px 8px #26301a1f)}
 .dropTarget{position:absolute;z-index:0;display:grid;place-items:center;width:var(--mk);height:var(--mk);border:3px dashed var(--wk-green-deep);border-radius:46% 54% 50% 50%/55% 52% 48% 45%;background:#ffffffb3;color:var(--wk-green-text);transform:translate(-50%,calc(-50% - 10px));pointer-events:none;animation:breathe 1.6s ease-in-out infinite}
 .dropTarget svg{width:28px;height:28px}
 .playhead{position:absolute;top:-6px;bottom:-6px;z-index:2;width:3px;margin-left:-1.5px;border-radius:3px;background:var(--wk-sun-deep);box-shadow:0 0 0 3px #ffe57666;pointer-events:none}

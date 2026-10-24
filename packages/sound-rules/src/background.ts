@@ -10,7 +10,7 @@
 // Who plays which part is decided separately (assignParts), so instruments never change the notes.
 // Pure; the web renders the plan, a later server can render the same plan.
 import type {MoodId} from '@wanwu-v2/contracts/arrangement';
-import type {TextbookTrack} from '@wanwu-v2/contracts/textbook';
+import type {TextbookTrack,TextbookVariation} from '@wanwu-v2/contracts/textbook';
 import {duckPoints,mergeSpans} from './mix.ts';
 import type {GainPoint,Span} from './mix.ts';
 import {seeded} from './random.ts';
@@ -23,7 +23,9 @@ export const BACKGROUND_PARTS:readonly BackgroundPart[]=['chord','bass','melody'
 /** `accent` 0–1: how strongly the note is played. */
 export type BackgroundNote={at:number;length:number;midi:number;part:BackgroundPart;accent:number};
 /** What the background borrows from a textbook card. */
-export type BackgroundTextbook=Pick<TextbookTrack,'id'|'tempoBpm'|'meter'|'rhythmCell'|'mode'|'mood'>;
+export type BackgroundTextbook=Pick<TextbookTrack,'id'|'tempoBpm'|'meter'|'rhythmCell'|'mode'|'mood'>&{
+ /** 换几种样子: the shape of the song's feature this time (missing = as it is). */
+ variation?:TextbookVariation};
 export type BackgroundInput={
  /** The piece's real length (the chosen length, or longer when a sound runs past it). The background never adds to it. */
  seconds:number;
@@ -42,6 +44,8 @@ export type BackgroundPlan={
  /** Whose colour it has: the child's mood, the textbook song's, or neutral. */
  colour:MoodId|'none';
  textbook:string|null;
+ /** The shape of the textbook song's feature that was played (null without a song). */
+ variation:TextbookVariation|null;
  /** Where the tonic lands for the ending, in seconds. */
  cadenceAt:number;
  fadeInSeconds:number;fadeOutSeconds:number;
@@ -86,15 +90,20 @@ export function backgroundPlan(input:BackgroundInput,rules:BackgroundRules=BACKG
  const busy=mergeSpans(input.sounding.map(span=>({start:span.start-marginSeconds,end:span.end+marginSeconds})),seconds);
  const gaps:Span[]=[];let from=0;
  for(const span of [...busy,{start:seconds,end:seconds}]){if(span.start-from>=minGapBeats*beat)gaps.push({start:from,end:span.start});from=Math.max(from,span.end);}
- const base=tonic+liftSemitones,pool:number[]=[];
+ // 换几种样子 moves the melody up or down, stretches or squeezes the song's rhythm cell, or starts it half a beat late.
+ const variation=textbook?textbook.variation??'original':null,v=rules.variations;
+ const base=tonic+liftSemitones+(variation==='higher'?v.registerSemitones:variation==='lower'?-v.registerSemitones:0),pool:number[]=[];
  for(let octave=0;octave<3;octave++)for(const step of melodySteps){const midi=base+step+12*octave;if(midi<=base+rangeSemitones)pool.push(midi);}
- const random=seeded(input.seed),cell=textbook?.rhythmCell.length?textbook.rhythmCell:[feel.melodyEveryBeats];
+ const songCell=textbook?.rhythmCell.length?textbook.rhythmCell:null;
+ const random=seeded(input.seed),cell=!songCell?[feel.melodyEveryBeats]
+  :variation==='stretch'?songCell.map(beats=>Math.min(4,beats*v.stretchFactor))
+  :variation==='squeeze'?songCell.map(beats=>Math.max(.25,beats*v.squeezeFactor)):songCell;
  const chordTone=(midi:number,at:number)=>{
   const classes=new Set(triad(degreeOf(Math.floor(at/bar+1e-9))).map(note=>((note%12)+12)%12));
   return pool.reduce((best,candidate)=>classes.has(candidate%12)&&Math.abs(candidate-midi)<Math.abs(best-midi)?candidate:best,
    pool.find(candidate=>classes.has(candidate%12))??midi);
  };
- let index=Math.floor(pool.length/2),t=0,step=0;
+ let index=Math.floor(pool.length/2),t=variation==='offset'?v.offsetBeats*beat:0,step=0;
  const phrase:{at:number;length:number;gap:number}[]=[];
  while(t<cadenceAt-1e-9){
   const length=cell[step%cell.length]!*beat,gap=gaps.findIndex(item=>t>=item.start-1e-9&&t+length*noteLengthPortion<=Math.min(item.end,cadenceAt)+1e-9);
@@ -115,7 +124,7 @@ export function backgroundPlan(input:BackgroundInput,rules:BackgroundRules=BACKG
   notes.push({at:cadenceAt,length:seconds-cadenceAt,midi:base,part:'melody',accent:.85});
 
  return {
-  rules:rules.version,mix:mix.version,source:'local-rules',seconds,tempo,metre,mode,tonic,colour,textbook:textbook?.id??null,cadenceAt,
+  rules:rules.version,mix:mix.version,source:'local-rules',seconds,tempo,metre,mode,tonic,colour,textbook:textbook?.id??null,variation,cadenceAt,
   fadeInSeconds:Math.min(rules.fade.inSeconds,seconds/3),fadeOutSeconds:Math.min(rules.fade.outSeconds,seconds/3,Math.max(rules.ending.minRingSeconds,seconds-cadenceAt)),
   notes:notes.sort((a,b)=>a.at-b.at),
   duck:duckPoints(input.sounding,seconds,mix),
@@ -140,4 +149,29 @@ export function assignParts(chosen:readonly PlayerRoles[]):Record<BackgroundPart
   parts[part]=players.length||part==='rhythm'?players:[ORIGINAL_PLAYER];
  }
  return parts;
+}
+
+/**
+ * 和我的声音碰一碰: what happened between the background and the child's sounds, in one of four words —
+ * `together` (most sounds start on a beat: pushing together), `answer` (the melody comes back between sounds again and
+ * again: call and answer), `fill` (the melody fills the gaps), `under` (no gap long enough: the background carries the
+ * sounds). `example` is the first sound that started on a beat, for the explanation.
+ */
+export type Meeting={kind:'together'|'answer'|'fill'|'under';example:number|null};
+export function backgroundMeeting(plan:Pick<BackgroundPlan,'tempo'|'notes'>,sounding:readonly Span[],rules:BackgroundRules=BACKGROUND_RULES):Meeting{
+ const {toleranceSeconds,alignShare,answerTurns}=rules.meeting,beat=60/plan.tempo;
+ const onsets=sounding.map((span,index)=>({at:span.start,index})).sort((a,b)=>a.at-b.at);
+ const onBeat=onsets.filter(onset=>Math.abs(onset.at-Math.round(onset.at/beat)*beat)<=toleranceSeconds);
+ const together=onsets.length>0&&onBeat.length/onsets.length>=alignShare;
+ const melody=plan.notes.filter(note=>note.part==='melody');
+ if(!melody.length)return {kind:together?'together':'under',example:onBeat[0]?.index??null};
+ if(together)return {kind:'together',example:onBeat[0]!.index};
+ // Melody between two of the child's sounds counts as one answer.
+ const spans=[...sounding].sort((a,b)=>a.start-b.start);
+ let turns=0;
+ for(let i=0;i+1<spans.length;i++){
+  const from=spans[i]!.end,to=spans[i+1]!.start;
+  if(melody.some(note=>note.at>=from-1e-6&&note.at<to))turns++;
+ }
+ return {kind:turns>=answerTurns?'answer':'fill',example:null};
 }

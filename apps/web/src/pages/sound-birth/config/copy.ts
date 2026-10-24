@@ -26,6 +26,12 @@ export const birthCopy={
  optionHint:'选一项听听变化，再点一下就取消；不选的保持原声。',
  backEntry:'返回入口',finish:'做好了，去万物声场',finishUnavailable:'暂未开放',
  needSound:'先在上方选一个声音。',
+ // 声音体检 found nothing to hear: say so plainly, the child may re-record (the recording is kept as it is).
+ silent:'这段好像没录到声音，可以点「录音」重录，或换一段。',
+ // 返回声音诞生: going on with the last sound; a new recording, upload or library sound makes a new one.
+ editing:(name:string)=>`接着改「${name}」：改好了点「做好了」。想做一个新声音，就重新录音、上传或从声音库挑。`,
+ editMissing:'这个声音的录音没找到，可以重新录音或上传。',
+ silentFinish:'这段好像没录到声音。确定就用它，再点一次「做好了」。',
  needProvenance:'补齐下面的声音信息，这个声音才能溯源。',
  worldUnavailable:'万物声场还在准备中，暂未开放。你的声音、选择和来源信息都还在这里。',
  noSoundYet:'选好声音后，就能听到每一项的变化。',

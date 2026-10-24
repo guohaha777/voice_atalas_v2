@@ -90,6 +90,8 @@ export const backgroundLimits={
  bass:{dropSemitones:[0,36],lengthPortion:[.2,1]},
  rhythm:{two:[0,1,2,2],three:[0,1,3,3],four:[0,1,4,4],accentBoost:[0,1]},
  ending:{minRingSeconds:[.5,6]},
+ variations:{stretchFactor:[1,4],squeezeFactor:[.25,1],offsetBeats:[0,2],registerSemitones:[0,24]},
+ meeting:{toleranceSeconds:[0,.5],alignShare:[0,1],answerTurns:[1,8]},
  fade:{inSeconds:[0,5],outSeconds:[0,6]},
 } as const satisfies Limits;
 

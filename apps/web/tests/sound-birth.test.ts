@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {NEUTRAL_SHAPE,SOUND_CHOICES,SOUND_CONTRACT_VERSION,SOUND_SOURCE_MAX_MS,SOUND_DIMENSIONS,cleanSourceText,normalizeMakerName,isCompleteShape,missingProvenance,normalizeSoundName,parseSoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import type {SoundSource} from '@wanwu-v2/contracts/sound';
-import {describeShape,finishCheck,initialSoundBirth,remainingDimensions,soundBirthReducer,toSoundUnitDraft} from '../src/pages/sound-birth/model/soundBirthState.ts';
+import {describeShape,editingSoundBirth,finishCheck,initialSoundBirth,remainingDimensions,soundBirthReducer,toSoundUnitDraft} from '../src/pages/sound-birth/model/soundBirthState.ts';
+import {WorkSession} from '../src/shared/creation/workSession.ts';
 import {SessionSourceArchive} from '../src/shared/creation/sourceArchive.ts';
 import {libraryGroups} from '../src/pages/sound-birth/services/soundLibrary.ts';
 import {presetHintProvider} from '../src/pages/sound-birth/services/soundHints.ts';
@@ -189,4 +190,29 @@ test('a part of a long example stays an example with its own id and is not liste
  assert.equal(excerpt.provenance.recordedBy,'旧版项目授权录音');
  archive.save(excerpt,part);
  assert.deepEqual(libraryGroups([],archive.list()).map(group=>group.title),['示例声音']);
+});
+
+test('返回声音诞生 goes on editing the last sound: same id and number; a new source makes a new sound',()=>{
+ const session=new WorkSession(),now=new Date('2026-10-24T08:00:00.000Z');
+ assert.equal(session.lastMade(),null,'nothing made yet');
+ let state=soundBirthReducer(initialSoundBirth(0),ready(example));
+ state=soundBirthReducer(state,{type:'choose',dimension:'pitch',value:'high'});
+ const first=toSoundUnitDraft(state,'unit:1',now)!;
+ assert.equal(session.addUnit(first,example).status,'added');
+ const last=session.lastMade()!;
+ assert.equal(last.unit.id,'unit:1');assert.equal(last.source,example);
+ // Reopened: source, name, five choices and number come back, the card stays checked.
+ let editing=editingSoundBirth(last.unit,last.source);
+ assert.deepEqual([editing.source,editing.name,editing.shape,editing.markerIndex,editing.cardConfirmed],[example,first.name,{pitch:'high'},0,true]);
+ editing=soundBirthReducer(editing,{type:'choose',dimension:'duration',value:'long'});
+ const changed=toSoundUnitDraft(editing,'unit:1',now)!;
+ assert.equal(session.hasUnit('unit:1'),true);
+ assert.equal(session.updateUnit({...changed,markerIndex:5},example),true);
+ const work=session.current()!;
+ assert.equal(work.units.length,1,'updated, not added');
+ assert.deepEqual(work.units[0]!.shape,{pitch:'high',duration:'long'});assert.equal(work.units[0]!.markerIndex,0,'the number never changes');
+ // A new recording while editing takes the next number.
+ const next=soundBirthReducer(editing,{type:'source-ready',source:recording,markerIndex:1});
+ assert.equal(next.markerIndex,1);assert.equal(next.source,recording);
+ session.reset();assert.equal(session.lastMade(),null,'再来一首 starts with no sound to edit');
 });

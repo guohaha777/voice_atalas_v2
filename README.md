@@ -2,7 +2,7 @@
 
 本目录是本次重新开发的正式项目根目录，与比赛 demo、旧 `wanwu-shengpu` 工程分开。目前完成首页、入口选择弹窗和声音诞生页（等待验收），后续逐页确认。源码已进入 [voice_atalas_v1](https://github.com/guohaha777/voice_atalas_v1)，用户已将此前首页部署至 https://voiceatalas.netlify.app/ 。本轮手绘标题、开场修正和入口弹窗尚未推送或更新线上。
 
-新对话接续请先读 [开发交接 HANDOFF4](HANDOFF4.md)（成曲规则阶段，取代此前的 HANDOFF / HANDOFF2 / HANDOFF3）；声音规则见 [packages/sound-rules/README.md](packages/sound-rules/README.md)。
+新对话接续请先读 [开发交接 HANDOFF5](HANDOFF5.md)（成曲规则完成、下一步提示词系统，取代此前的 HANDOFF / HANDOFF2 / HANDOFF3 / HANDOFF4）；声音规则见 [packages/sound-rules/README.md](packages/sound-rules/README.md)。
 
 ## 本机运行
 

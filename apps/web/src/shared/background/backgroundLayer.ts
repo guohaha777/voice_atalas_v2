@@ -17,13 +17,19 @@ export function inspirationTrack(inspiration:Inspiration,tracks:readonly Textboo
  return inspiration.kind==='textbook'?tracks.find(track=>track.id===inspiration.entryId)??null:null;
 }
 
+/** The chosen song with the shape of its feature the child picked (换几种样子). */
+function textbookWithVariation(inspiration:Inspiration,tracks:readonly TextbookTrack[]){
+ const track=inspirationTrack(inspiration,tracks);
+ return track&&inspiration.kind==='textbook'?{...track,variation:inspiration.variation??'original'}:null;
+}
+
 /** Plan input: the piece's real length, when the child's sounds are heard, the mood and the chosen textbook song. */
 export function backgroundInput(arrangement:Arrangement,inspiration:Inspiration,tracks:readonly TextbookTrack[]):BackgroundInput{
  return {
   seconds:pieceSeconds(arrangement),
   sounding:timedEvents(arrangement).map(({start,end})=>({start,end})),
   mood:presetMood(arrangement.mood),
-  textbook:inspirationTrack(inspiration,tracks),
+  textbook:textbookWithVariation(inspiration,tracks),
   seed:arrangement.id,
  };
 }
@@ -48,6 +54,7 @@ export function backgroundBrief(arrangement:Arrangement,inspiration:Inspiration,
   tempo:plan.tempo,metre:plan.metre,mode:plan.mode,mood:input.mood,
   arrangement:{density:summary.density,repetition:summary.repetition,register:summary.register},
   textbook:track?textbookFeatures(track):null,
+  variation:input.textbook?.variation??null,
   instruments:[...instruments],rules:{...RULE_VERSIONS},
  };
 }

@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import type {CSSProperties} from 'react';
 import {backgroundCopy} from '../../../shared/background/copy';
 import {inspirationCopy} from '../../../shared/inspiration/copy';
+import {variationNames} from '../../../shared/inspiration/talk';
 import type {InspirationTab} from '../../../shared/inspiration/InspirationDialog';
 import {Glyph,PaperIcon} from '../../../shared/ui/PaperIcon';
 import type {PaperIconName,PaperTone} from '../../../shared/ui/PaperIcon';
@@ -43,6 +44,13 @@ export function InspirationCard({compose,onOpen}:{compose:Compose;onOpen:(tab:In
  return <section className={styles.card} aria-labelledby="inspiration-title">
   <h3 id="inspiration-title" className={styles.cardTitle}><Badge icon="book" tone="pink"/>{composeCopy.inspirationTitle}<small>{composeCopy.inspirationOptional}</small></h3>
   <p className={styles.cardLead}>{lead}</p>
+  {/* 换几种样子: as it is, or two shapes chosen for this arrangement; the squirrel says what each one does. */}
+  {compose.variations.length>0&&<div className={styles.variationRow} role="radiogroup" aria-label={composeCopy.variationLabel}>
+   {compose.variations.map(variation=><button key={variation} type="button" role="radio"
+    aria-checked={(inspiration.kind==='textbook'?inspiration.variation??'original':'original')===variation} onClick={()=>compose.setVariation(variation)}>
+    {variationNames[variation]}
+   </button>)}
+  </div>}
   <div className={styles.choiceRow} role="group" aria-labelledby="inspiration-title">
    <button type="button" aria-pressed={inspiration.kind==='none'} onClick={()=>compose.setInspiration({kind:'none'})}>{composeCopy.inspirationNone}</button>
    <button type="button" aria-pressed={inspiration.kind!=='none'} onClick={()=>onOpen(inspiration.kind==='teaching-music'?'upload':'examples')}>{composeCopy.inspirationTextbook}</button>
@@ -60,13 +68,11 @@ export function BackgroundCard({compose}:{compose:Compose}){
  return <section className={styles.card} aria-labelledby="background-title" data-off={!background.enabled||undefined}>
   <div className={styles.cardTop}>
    <h3 id="background-title" className={styles.cardTitle}><Badge icon="note" tone="lime"/>{composeCopy.backgroundTitle}
-    {/* Which step of the background chain plays now, and the AI chip: locked while AI is not open, a switch once an
-        AI background is ready. The squirrel says the rest. */}
-    <small className={styles.sourceTag}>{backgroundCopy.source[compose.aiSource]}</small>
-    <button type="button" className={styles.aiChip} data-state={ai.status} aria-pressed={aiReady?compose.usingAi:undefined}
-     aria-label={composeCopy.aiLabel(ai.status==='ready'?backgroundCopy.source[ai.source]:null)} onClick={compose.tapAi}>
-     <Glyph name={aiReady?'bulb':'lock'}/>{composeCopy.aiChip}
-    </button>
+    {/* One tag: which background plays now (本地生成 / AI 写音符 / AI 生成). It breathes while AI is asked; once an AI
+        background is ready, a tap switches between it and the local one; otherwise the squirrel says why there is none. */}
+    <button type="button" className={styles.sourceTag} data-state={ai.status} aria-pressed={aiReady?compose.usingAi:undefined}
+     aria-label={composeCopy.sourceLabel(backgroundCopy.source[compose.aiSource],aiReady?backgroundCopy.source[compose.usingAi?'local-rules':ai.source]:null)}
+     onClick={compose.tapAi}>{backgroundCopy.source[compose.aiSource]}</button>
    </h3>
    <button type="button" role="switch" aria-checked={background.enabled} aria-label={composeCopy.backgroundToggle} className={styles.switch}
     onClick={()=>compose.setBackgroundEnabled(!background.enabled)}>

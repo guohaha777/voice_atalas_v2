@@ -4,11 +4,12 @@ import type {Arrangement} from '@wanwu-v2/contracts/arrangement';
 import {flowSteps} from '../../app/navigation';
 import {backgroundCopy} from '../../shared/background/copy';
 import {moodLabels,presetMood} from '../../shared/creation/moodCopy';
-import {metreNames} from '../../shared/inspiration/copy';
+import {songFeature} from '../../shared/inspiration/talk';
 import {InspirationDialog} from '../../shared/inspiration/InspirationDialog';
 import {SoundMarker} from '../../shared/markers/SoundMarker';
 import {FlowHeader} from '../../shared/ui/FlowHeader';
 import {WorkHeaderActions} from '../../shared/ui/WorkHeaderActions';
+import {useClassroom} from '../../shared/ui/classroom';
 import {WorkIntro} from '../../shared/ui/WorkIntro';
 import {Glyph} from '../../shared/ui/PaperIcon';
 import {worldCopy} from './config/copy';
@@ -38,7 +39,7 @@ function spokenChoice(world:SoundWorld){
   case 'background-off':return guideLines.backgroundOff;
   case 'inspiration':{
    const inspiration=world.inspiration;
-   if(inspiration.kind==='textbook'&&world.backgroundTrack)return guideLines.inspirationSong(world.backgroundTrack.title,metreNames[world.backgroundTrack.meter]);
+   if(inspiration.kind==='textbook'&&world.backgroundTrack)return guideLines.inspirationSong(songFeature(world.backgroundTrack));
    return inspiration.kind==='teaching-music'?guideLines.inspirationMusic:guideLines.inspirationNone;
   }
   case 'mood':
@@ -77,6 +78,7 @@ function guideText(world:SoundWorld){
 export function SoundWorldPage({onNavigate,onFinish}:{onNavigate:(path:string)=>void;onFinish:(arrangement:Arrangement)=>FinishResult}){
  // Hand-off to 万物成曲 goes through the app (the arrangement is already in the current work).
  const world=useSoundWorld(onFinish);
+ const classroom=useClassroom();
  const area=useRef<HTMLDivElement>(null);
  const [more,setMore]=useState<LibraryScope|null>(null);
  /** The occurrence open in 剪一剪, if any. */
@@ -101,7 +103,7 @@ export function SoundWorldPage({onNavigate,onFinish}:{onNavigate:(path:string)=>
  const dragUnit=drag&&(drag.item.kind==='unit'?unitOf(world.state.arrangement,drag.item.unitId)
   :unitOf(world.state.arrangement,world.state.arrangement?.events.find(event=>drag.item.kind==='event'&&event.id===drag.item.eventId)?.unitId??''));
  return <div className={styles.shell} data-dragging={!!drag||undefined}>
-  <FlowHeader steps={flowSteps} current="world" onNavigate={onNavigate} aside={<WorkHeaderActions onNavigate={onNavigate} onLibrary={()=>setMore('example')}/>}/>
+  <FlowHeader steps={flowSteps} current="world" onNavigate={onNavigate} aside={<WorkHeaderActions onNavigate={onNavigate} onLibrary={()=>setMore('example')} classroom={classroom}/>}/>
   <main className={styles.page}>
    <WorkIntro title={worldCopy.title} subtitle={worldCopy.subtitle} guide={worldGuide} text={text} tone={world.state.notice?.tone} fit/>
    <div className={styles.workspace}>
@@ -122,7 +124,7 @@ export function SoundWorldPage({onNavigate,onFinish}:{onNavigate:(path:string)=>
    </div>
   </main>
   {drag&&dragUnit&&<span className={styles.dragGhost} style={{left:drag.x,top:drag.y}} aria-hidden="true"><SoundMarker index={dragUnit.markerIndex} className={styles.ghostMarker} face="happy"/></span>}
-  {more&&<MoreSoundsDialog world={world} initial={more} onClose={()=>setMore(null)} onMakeNew={()=>{setMore(null);onNavigate('/create');}}/>}
+  {more&&<MoreSoundsDialog world={world} initial={more} onClose={()=>setMore(null)} onMakeNew={()=>{setMore(null);onNavigate('/create?new');}}/>}
   {trimming&&<ClipEditor world={world} eventId={trimming} onClose={()=>setTrimming(null)}/>}
   {/* With sounds placed, it opens on 帮我找找 (the songs most like the arrangement); before that, on the song list. */}
   {inspiring&&<InspirationDialog value={world.inspiration} entries={world.inspirationEntries} matches={world.matches}

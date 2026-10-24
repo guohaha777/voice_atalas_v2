@@ -1,5 +1,6 @@
-// Repository port for 万物声场. The page only talks to this interface; today it is backed by mock examples and the
-// in-memory work of this visit. A server adapter implements the same interface later — the page won't change.
+// Repository port for 万物声场. The page only talks to this interface; the implementation is chosen in app/services.ts
+// (today the mock in mocks/soundWorldRepository.ts: examples and the in-memory work of this visit). A server adapter
+// implements the same interface later — the page won't change.
 //
 // Intended server endpoints (not implemented; listed so the adapter has a target, the server owns auth and visibility):
 //   GET  /api/v1/works/current/arrangement            → Arrangement (validated with parseArrangement)
@@ -10,10 +11,7 @@
 import type {Arrangement} from '@wanwu-v2/contracts/arrangement';
 import type {ComposeSettings} from '@wanwu-v2/contracts/work';
 import type {SoundUnitDraft} from '@wanwu-v2/contracts/sound';
-import {newId} from '../../../shared/creation/ids';
-import {workSession} from '../../../shared/creation/workSession';
 import type {SaveResult} from '../../../shared/creation/workSession';
-import {exampleArrangement,exampleUnit,exampleUnitSounds} from '../../../shared/creation/exampleWork';
 
 export type LibraryScope='example'|'mine'|'class'|'public';
 export const libraryScopes:readonly LibraryScope[]=['example','mine','class','public'];
@@ -27,20 +25,4 @@ export type SoundWorldRepository={
  /** Settings of the current work shared with 万物成曲: 课本灵感 and the background layer (on / off, instruments). */
  loadSettings():Promise<ComposeSettings>;
  saveSettings(settings:ComposeSettings):Promise<SaveResult>;
-};
-
-export const mockSoundWorldRepository:SoundWorldRepository={
- // The child's own work if there is one this visit; otherwise the example field.
- async load(){return workSession.current()??exampleArrangement(newId('work'),new Date());},
- async save(arrangement){return workSession.save(arrangement)?{status:'session'}:{status:'failed'};},
- async scope(scope){
-  switch(scope){
-   case 'example':return {status:'ready',units:exampleUnitSounds.map(sound=>exampleUnit(sound,0))};
-   case 'mine':return {status:'ready',units:workSession.current()?.units.filter(unit=>unit.input!=='example-preset')??[]};
-   case 'class':return {status:'unavailable',reason:'needs-account'};
-   case 'public':return {status:'unavailable',reason:'needs-review'};
-  }
- },
- async loadSettings(){return workSession.settings();},
- async saveSettings(settings){return workSession.saveSettings(settings)?{status:'session'}:{status:'failed'};},
 };

@@ -40,13 +40,16 @@
 ## 万物声场页
 
 - 路由 `/world`，代码单独分包，在声音诞生页时预取。声音诞生“做好了”经 `App` 把 `SoundUnitDraft` + 来源交给 `shared/creation/workSession.ts`（本次打开期间的当前作品），再打开本页；标记编号由作品分配。
-- `pages/sound-world/` 分为 `components/`（左栏声音、声场、浮动工具、心情、找更多声音）、`model/`（纯 reducer `soundWorldState.ts`、几何换算 `fieldGeometry.ts`、拖动 `useFieldDrag.ts`、编排 hook `useSoundWorld.ts`，拆出 `useFieldSound`（声音库、单个试听、整段试听与游标）和 `useMood`（心情））、`config/`（文案、mock 示例单元与示例摆放、青蛙向导）、`services/`（`SoundWorldRepository` 端口 + mock 实现，文件头列出预留 REST 路径）。
+- `pages/sound-world/` 分为 `components/`（左栏声音、声场、浮动工具、心情、找更多声音）、`model/`（纯 reducer `soundWorldState.ts`、几何换算 `fieldGeometry.ts`、拖动 `useFieldDrag.ts`、编排 hook `useSoundWorld.ts`，拆出 `useFieldSound`（声音库、单个试听、整段试听与游标）和 `useMood`（心情））、`config/`（文案、mock 示例单元与示例摆放、青蛙向导）、`services/`（`SoundWorldRepository` 端口，文件头列出预留 REST 路径；mock 在 `src/mocks/`）。
 - 数据走 `@wanwu-v2/contracts/arrangement`：事件只存 0–1 先后位置与行号（行只管错开摆放，不改变声音；默认 3 行可加到 5 行），不存像素；声音身份 `unitId` 与事件身份分开。整段试听用 `shared/audio/SequencePlayer.ts` 在同一音频时钟上排程，游标、高亮读同一时间，万物成曲可复用。
 - 详见 `docs/development/sound-world-acceptance.md`。
 
 ## 万物成曲页与作品书架
 
-- 路由 `/compose`（在声场时预取）和 `/works`（在成曲时预取），各自分包。`pages/compose/` 分为 `components/`（曲谱卡、播放条、右栏三卡、底栏与特征面板、弹窗）、`model/`（纯 reducer `composeState.ts`、曲谱派生 `scoreLayout.ts`、音乐特征 `discoveries.ts`、编排 hook `useCompose.ts`，拆出 `usePiecePlayback`（同一时钟的播放 / 暂停 / 跳转 / 拖动））、`config/`（文案、特征讲解文案、松鼠向导）、`services/`（`ComposeRepository` 端口 + mock，文件头列出预留 REST 路径）。`pages/works/` 同样分层，端口 `ShelfRepository`。
+- 路由 `/compose`（在声场时预取）和 `/works`（在成曲时预取），各自分包。`pages/compose/` 分为 `components/`（曲谱卡、播放条、右栏三卡、底栏与特征面板、弹窗）、`model/`（纯 reducer `composeState.ts`、曲谱派生 `scoreLayout.ts`、音乐特征 `discoveries.ts`、编排 hook `useCompose.ts`，拆出 `usePiecePlayback`（同一时钟的播放 / 暂停 / 跳转 / 拖动））、`config/`（文案、特征讲解文案、松鼠向导）、`services/`（`ComposeRepository` 端口，文件头列出预留 REST 路径；mock 在 `src/mocks/`）。`pages/works/` 同样分层，端口 `ShelfRepository`。
+- **mock 统一放在 `src/mocks/`**（2026-10-24）：各页仓库、乐器库、示例课本歌曲、作品书架内存实现都在这里；`src/app/services.ts` 是唯一选择实现的地方（页面 hook 的默认参数从这里取），接后端时在这里换成服务端适配器、删掉 `mocks/` 即可。`tests/structure.test.ts` 检查除 `app/services.ts` 外没有文件引用 `mocks/`。声音库示例声音、示例摆放是给访客的真实内容，如实的离线实现（AI 未开放、预设提示、心情自己写要模型）也不算 mock。
+- 课堂大屏 `shared/ui/classroom.ts`：声场、成曲两页打开时在 `<html>` 上设 `data-classroom`，字号课堂档在 `styles/typography.css`，各组件自己的课堂规则写在各自的 CSS 里。
+- 调音台 `pages/lab/`（`/lab/sound-rules`）：只在开发环境或 `VITE_ENABLE_LAB=1` 的预览构建里打包（`app/App.tsx`），正式站没有。
 - 背景层两页共用（2026-10-24）：`shared/background/`（示例乐器与分工、`BackgroundLibrary` 端口 + mock、从作品算规则输入、`useBackgroundLayer` 渲染缓存与音量、来源说明文案）和 `shared/audio/renderBackground.ts`（只演奏规则给的音符）。音符、结尾、让位、限幅都来自 `packages/sound-rules`。AI 背景端口 `shared/background/generator.ts`（降级链与超时，mock 未开放），成曲页 `model/useAiBackground.ts` 只在孩子选择时换上 AI 背景。
 - 课本灵感是共用模块 `shared/inspiration/`（特征模板目录端口 `InspirationCatalog` 与示例模板、帮我找找 `matches.ts`、试听合成、教学音乐本机选择与后端流程说明、`InspirationDialog`），万物声场摆放前就能选，万物成曲沿用同一个选择。模板契约是 `@wanwu-v2/contracts/textbook`。
 - 曲谱只从 `arrangement-v1` 派生，不存储。声场与成曲共用 `shared/creation/arrangementTiming.ts`（开始秒、听到的长度、整首长度、行整理、切换长度）、`exampleWork.ts`（示例单元与示例摆放）、`workSounds.ts`（音源加载与塑形缓存）。

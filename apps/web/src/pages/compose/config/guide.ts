@@ -16,6 +16,8 @@ export const guideLines={
  span:(seconds:number)=>`变成 ${seconds} 秒啦，声音的先后都没变。`,
  spanBlocked:(name:string,seconds:number,span:number)=>`「${name}」要响 ${seconds} 秒，至少要 ${span} 秒才放得下。`,
  inspiration:'借来了课本的节奏，只给背景用，你的声音一点没变。',
+ inspirationSong:(feature:string)=>`${feature}背景跟着它的节奏走，你的声音一点没变。上面可以换几种样子听听。`,
+ variation:(shape:string)=>`${shape}点「播放」听听，和你的声音碰在一起是什么样？`,
  // The background card holds only controls: the squirrel says what was chosen.
  backgroundOn:(what:string)=>`背景开啦：${what}。`,
  backgroundOff:'背景关啦，现在只听自己的声音。',

@@ -1,13 +1,16 @@
-// Repository port for 作品书架. Today: the in-memory shelf of this visit (shared/creation/workShelf) — a refresh empties
-// it. Later: the child's works from the server, filtered by account and visibility on the server.
+// Repository port for 作品书架. The implementation is chosen in app/services.ts — today the mock in
+// mocks/shelfRepository.ts (the in-memory shelf of this visit; a refresh empties it). Later: the child's works from the
+// server, filtered by account and visibility on the server.
 //
 // Intended server endpoints (not implemented; the server owns auth and visibility):
 //   GET /api/v1/works?owner=me        → SavedWork[] (validated with parseSavedWork)
 //   GET /api/v1/works/{workId}        → SavedWork
+//   PATCH /api/v1/works/{workId}      ← {title} → SavedWork
+//   DELETE /api/v1/works/{workId}     → 204 (the server keeps nothing the child took off)
 import type {SavedWork} from '@wanwu-v2/contracts/work';
-import {workSession} from '../../../shared/creation/workSession';
-import {workShelf} from '../../../shared/creation/workShelf';
-import type {ShelfSnapshot} from '../../../shared/creation/workShelf';
+
+/** The shelf, newest first. */
+export type ShelfSnapshot=readonly SavedWork[];
 
 export type ShelfRepository={
  list():ShelfSnapshot;
@@ -18,22 +21,8 @@ export type ShelfRepository={
  hasUnsavedCurrent():boolean;
  /** Make a shelved work the current piece (万物成曲 then opens it). */
  open(work:SavedWork):void;
-};
-
-const subscribeBoth=(listener:()=>void)=>{
- const offShelf=workShelf.subscribe(listener),offSession=workSession.subscribe(listener);
- return()=>{offShelf();offSession();};
-};
-
-export const mockShelfRepository:ShelfRepository={
- list:workShelf.list,
- subscribe:subscribeBoth,
- currentId:()=>workSession.current()?.id??null,
- hasUnsavedCurrent(){
-  const current=workSession.current();
-  if(current?.origin!=='child'||!current.events.length)return false;
-  const shelved=workShelf.get(current.id);
-  return !shelved||shelved.arrangement.updatedAt!==current.updatedAt||JSON.stringify(shelved.settings)!==JSON.stringify(workSession.settings());
- },
- open:work=>workSession.open(work),
+ /** Take a work off the shelf. */
+ remove(id:string):boolean;
+ /** Give a work a new name; null when the name is empty. */
+ rename(id:string,title:string):SavedWork|null;
 };

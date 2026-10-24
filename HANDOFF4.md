@@ -1,5 +1,7 @@
 # 万物声谱 · 工程前端开发交接 4（成曲规则阶段）
 
+> **已被 `HANDOFF5.md` 取代**（2026-10-24），本文件只作历史记录。
+
 更新：2026-10-24。正式工程：`/Users/hahaking/Projects/voice_atalas/wanwu-shengpu-v2`，仓库 `https://github.com/guohaha777/voice_atalas_v1`，分支 `main`。本轮已在本地提交，**未推送**（推送会触发 Netlify 更新线上，需用户明确同意）。
 
 **本文件取代 `HANDOFF3.md`。** 先读根目录 `AGENTS.md`，再读本文件；改规则先读 `packages/sound-rules/README.md`。用户当前指令优先，回复一律用中文。
@@ -61,14 +63,14 @@
 
 ## 3. 没做、但已定规则的事（下次可直接做）
 
-1. **调音台**：完整规则写在 `packages/sound-rules/README.md` 的“调音台”一节。要点：
+1. ✅（2026-10-24 已做，`/lab/sound-rules`，只在开发 / 预览构建；测试声音集清单 `docs/assets/test-set.json` 已有 8 段、待收集 11 段）**调音台**：完整规则写在 `packages/sound-rules/README.md` 的“调音台”一节。要点：
    - 只在开发 / 预览环境出现，正式站不打包；
    - 用的是正式的 `planCard` / `planClip` / `renderShaped`，换上正在调的规则对象；
    - 每个参数一个滑块，范围取自 `schema.ts`；
    - 导出前先校验，导出的 JSON 放进 `rules/` 就生效；
    - 配一套 15–20 段的测试声音集作为回归集（原件放 `assets-source/audio/test-set/`，清单放 `docs/assets/test-set.json`）；
    - 它用来定通用规则，不是给每段声音单独调，用户接触不到。
-2. **没录到声音的提示**：体检判为 `silent` 时，声音诞生页提示“这段好像没录到声音，可以重录”。现在不会提示。
+2. ✅ **没录到声音的提示**（2026-10-24 已做）。
 3. **耳机 / 外放实听**：五个维度的数值只做过数值测量和渲染检查（72 种组合时长一致、峰值 ≤ 0.63、无坏数据），还没人听过。需要用户或音乐角色试听后调参数。
 
 ## 4. 下两个板块：已列出、待逐条确认的成曲规则
@@ -85,7 +87,7 @@
 - ✅ 新增（2026-10-24）：声场的背景开关并进课本灵感那一行（小喇叭），行里不放小字，背景、课本、心情的说明由小青蛙说。
 - ✅ 新增（2026-10-24）：声场里实时听本地背景（左栏“背景音乐”开关），课本灵感“帮我找找”改为本地规则匹配，示例歌曲改为特征模板（`textbook-v1`）。详见 `docs/development/sound-world-acceptance.md` 末节。
 
-**万物成曲**（核心是背景层，代码在 `pages/compose/model/backgroundSynth.ts`、`config/backgrounds.ts`、`model/useBackgroundMusic.ts`）
+**万物成曲**（核心是背景层：规则在 `packages/sound-rules` 的 `background.ts` / `mix.ts`，网页在 `apps/web/src/shared/background/` 和 `shared/audio/renderBackground.ts`，成曲页的 AI 背景在 `pages/compose/model/useAiBackground.ts`）
 - ✅ 6 心情决定调式、和弦进行、音区和疏密（`packages/sound-rules/rules/background.v1.json`）。
 - ✅ 7 旋律只在孩子的声音之间的空档出现。
 - ✅ 8 结尾选“在长度之内收尾”（用户选甲）：属和弦后，主和弦落在离结尾至少 1.5 秒的最后一条小节线上，整首长度不变。
@@ -96,9 +98,10 @@
 - ✅ 13 总线限幅（`mix.v1.json` 的 `limiter`，两页共用）。
 - 14 音乐小发现：阈值暂不动；“背景接话”这条用户决定先不做。
 - ✅ 15 规则集中、版本化：作品保存时记录 `rendering`（背景来源 + 各规则版本），契约写明“浏览器只预览，书架和分享的正式音频由后端按同一版本规则混音”（2026-10-24）。接口协议文档仍待最后统一生成。
+- ✅ 新增（2026-10-24）：课本模式补齐（换几种样子、碰一碰、课本讲解本地模板、声场里先讲歌曲特点）；课堂大屏（声场、成曲）；作品书架听一听 / 改名 / 拿下来；返回声音诞生 = 接着改上一个声音。
 - ✅ 新增（2026-10-24）：成曲页 AI 背景的数据契约（`contracts/background`）、端口与降级链（`shared/background/generator.ts`，mock 如实未开放）、界面状态（“AI”小标签，说明由小松鼠说）；课本歌曲特征随请求发送。背景卡片去掉说明小字。
 
-背景规则已照声音规则的做法落地（2026-10-24）：数值在 `background.v1.json`、`mix.v1.json`、`textbook-match.v1.json`，算法是纯函数，页面不写数值；背景层移到 `apps/web/src/shared/background/`，两页共用。课本歌曲的“换几种样子”和“碰一碰”讲解、AI 背景端口实现、作品记录规则版本还没做。
+背景规则已照声音规则的做法落地（2026-10-24）：数值在 `background.v1.json`、`mix.v1.json`、`textbook-match.v1.json`，算法是纯函数，页面不写数值；背景层在 `apps/web/src/shared/background/`，两页共用。AI 背景的端口、契约与界面状态、作品记录规则版本都已做（AI 本身未开放）。
 
 ## 5. 结构速查
 
@@ -113,14 +116,14 @@ scripts/build-library-audio.mjs  声音库生成脚本；scripts/check-assets.mj
 
 ## 6. 仍未开始、用户已提过的要求
 
-- **mock 数据收进单独文件夹，方便一键清理**。现状：mock 实现散在各页 `services/*.ts`（端口和 mock 在同一个文件里），页面 hook 用默认参数注入 mock。建议：新建 `apps/web/src/mocks/` 加一个组合入口，统一决定用 mock 还是真实实现；`services/` 只留端口定义。注意：声音库示例声音是给访客免登录体验的**真实内容**，不算 mock。
+- ✅（2026-10-24 已做：`src/mocks/` + `src/app/services.ts`，结构测试守着）**mock 数据收进单独文件夹，方便一键清理**。现状：mock 实现散在各页 `services/*.ts`（端口和 mock 在同一个文件里），页面 hook 用默认参数注入 mock。建议：新建 `apps/web/src/mocks/` 加一个组合入口，统一决定用 mock 还是真实实现；`services/` 只留端口定义。注意：声音库示例声音是给访客免登录体验的**真实内容**，不算 mock。
 - **接口协议**：最后一步，从 `packages/contracts` 和各 `services/*.ts` 文件头里的预留接口生成一份交接文档。
 
 ## 7. 验证方式
 
 ```sh
 cd /Users/hahaking/Projects/voice_atalas/wanwu-shengpu-v2
-npm test                # 103 项（应用 72 + 规则包 31），必须全过
+npm test                # 111 项，必须全过
 npm run build           # 类型检查 + 资源检查（含声音库与体检规则版本）+ 样式结构检查 + 构建
 npm run assets:library  # 只在增改声音库原件或改了体检规则后运行（需要 ffmpeg）
 ```

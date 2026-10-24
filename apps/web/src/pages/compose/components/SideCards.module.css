@@ -32,6 +32,10 @@
 /* Too short for the longest sound: greyed and flat, still tappable so the squirrel can say why. */
 .spanOption[aria-disabled=true]{background:var(--wk-soft);color:#b4baa9;box-shadow:none;cursor:not-allowed;transform:none}
 .spanOption[aria-disabled=true] small{color:#b4baa9}
+/* 换几种样子: three small pills above the inspiration buttons. */
+.variationRow{display:flex;gap:6px;margin:-4px 0 10px}
+.variationRow button{flex:1 1 0;min-width:0;min-height:34px;padding:0 6px;border:0;border-radius:999px;background:var(--wk-soft);color:var(--wk-ink-soft);font-size:var(--font-small);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .2s}
+.variationRow button[aria-checked=true]{background:var(--wk-pink);color:#6b3a42;box-shadow:inset 0 0 0 2px #f0a9b4}
 .choiceRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:5px;border-radius:20px;background:var(--wk-field);box-shadow:var(--wk-inset)}
 .choiceRow button{min-width:0;overflow-wrap:anywhere;position:relative;min-height:44px;padding:0 4px;border:0;border-radius:15px;background:#fff;color:var(--wk-ink-soft);font-size:var(--font-body);font-weight:700;white-space:nowrap;box-shadow:var(--wk-key);transition:box-shadow .15s,background .25s,transform .15s var(--wk-ease)}
 .choiceRow button:hover{transform:translateY(-2px);box-shadow:var(--wk-key-lg)}
@@ -54,14 +58,12 @@
 .trackRow .coming{display:inline-flex;align-items:center;gap:4px;min-height:38px;padding:0 12px;border:0;border-radius:999px;background:var(--wk-soft);color:#a0a796;font-size:var(--font-small);font-weight:700;box-shadow:none}
 .trackRow .coming:hover{transform:none}
 .trackRow .coming svg{width:13px;height:13px;color:inherit}
-/* Which step of the background chain is playing (本地生成 today): a quiet tag by the title. */
-.sourceTag{padding:1px 8px;border-radius:9px;background:var(--wk-soft);font-size:var(--font-caption);font-weight:700;color:var(--wk-muted)}
-/* AI chip: grey with a lock while AI is closed or gave nothing; breathing while asking; a green switch once ready. */
-.aiChip{display:inline-flex;align-items:center;gap:3px;min-height:26px;padding:0 9px;border:0;border-radius:9px;background:var(--wk-soft);color:#a0a796;font-size:var(--font-caption);font-weight:800}
-.aiChip svg{width:12px;height:12px}
-.aiChip[data-state=working]{animation:pulse 1.2s ease-in-out infinite}
-.aiChip[data-state=ready]{background:#fff;color:var(--wk-on-fill);box-shadow:inset 0 0 0 2px var(--wk-lime)}
-.aiChip[aria-pressed=true]{background:var(--wk-selected-fill);box-shadow:var(--wk-selected-lift)}
+/* The background source tag (本地生成 today): quiet while it only says what plays; breathing while AI is asked; a lime
+   outline once an AI background is ready to switch to, filled while the AI one plays. */
+.sourceTag{min-height:26px;padding:0 9px;border:0;border-radius:9px;background:var(--wk-soft);font-size:var(--font-caption);font-weight:700;color:var(--wk-muted)}
+.sourceTag[data-state=working]{animation:pulse 1.2s ease-in-out infinite}
+.sourceTag[data-state=ready]{background:#fff;color:var(--wk-on-fill);box-shadow:inset 0 0 0 2px var(--wk-lime)}
+.sourceTag[aria-pressed=true]{background:var(--wk-selected-fill);box-shadow:var(--wk-selected-lift)}
 .trackRow small{display:inline-flex;align-items:center;gap:2px;margin-left:2px;font-size:var(--font-caption);font-weight:700;color:var(--wk-muted)}
 .volume{display:flex;align-items:center;gap:10px;margin-top:8px}
 .volume>svg{width:24px;height:24px;color:var(--wk-green-text)}
@@ -72,7 +74,7 @@
 @keyframes pulse{50%{opacity:.4}}
 @media(--reduced-motion){
  .spanOption,.choiceRow button,.trackRow button,.badge svg{transition:none}
- .aiChip[data-state=working]{animation:none}
+ .sourceTag[data-state=working]{animation:none}
 }
 @media(--short){
  .card{padding:10px 14px}

@@ -13,6 +13,8 @@
   "./shaping": "./src/shaping.ts",
   "./background": "./src/background.ts",
   "./mix": "./src/mix.ts",
-  "./textbook-match": "./src/textbookMatch.ts"
+  "./textbook-match": "./src/textbookMatch.ts",
+  "./textbook-variation": "./src/textbookVariation.ts",
+  "./schema": "./src/schema.ts"
  }
 }

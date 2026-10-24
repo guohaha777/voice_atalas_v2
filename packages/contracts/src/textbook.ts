@@ -17,6 +17,12 @@ export const DENSITIES:readonly Density[]=['sparse','medium','busy'];
 export type Brightness='dark'|'mid'|'bright';
 export const BRIGHTNESSES:readonly Brightness[]=['dark','mid','bright'];
 export type Metre=2|3|4;
+/**
+ * 换几种样子: how the song's feature is played in the background this time — as it is, its rhythm cell twice as long or
+ * half as long, half a beat later, or moved up / down. Only the feature changes shape, never the child's sounds.
+ */
+export type TextbookVariation='original'|'stretch'|'squeeze'|'offset'|'higher'|'lower';
+export const TEXTBOOK_VARIATIONS:readonly TextbookVariation[]=['original','stretch','squeeze','offset','higher','lower'];
 
 export type TextbookTrack={
  version:typeof TEXTBOOK_CONTRACT_VERSION;

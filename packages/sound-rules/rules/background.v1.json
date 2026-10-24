@@ -20,5 +20,7 @@
  "bass": {"dropSemitones": 24, "lengthPortion": 0.9},
  "rhythm": {"two": [1, 0.6], "three": [1, 0.5, 0.5], "four": [1, 0.5, 0.75, 0.5], "accentBoost": 0.3},
  "ending": {"minRingSeconds": 1.5},
+ "variations": {"stretchFactor": 2, "squeezeFactor": 0.5, "offsetBeats": 0.5, "registerSemitones": 12},
+ "meeting": {"toleranceSeconds": 0.12, "alignShare": 0.5, "answerTurns": 2},
  "fade": {"inSeconds": 1.2, "outSeconds": 2}
 }

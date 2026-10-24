@@ -21,6 +21,10 @@ const loadCompose=()=>import('../pages/compose/ComposePage');
 const ComposePage=lazy(()=>loadCompose().then(module=>({default:module.ComposePage})));
 const loadWorks=()=>import('../pages/works/WorksPage');
 const WorksPage=lazy(()=>loadWorks().then(module=>({default:module.WorksPage})));
+// 调音台: development, or a preview build with VITE_ENABLE_LAB=1. Elsewhere this is constant false and the build leaves
+// the page out entirely.
+const LAB_ENABLED=import.meta.env.DEV||import.meta.env.VITE_ENABLE_LAB==='1';
+const LabPage=LAB_ENABLED?lazy(()=>import('../pages/lab/LabPage').then(module=>({default:module.LabPage}))):null;
 // Prefetch 声音诞生 before the home → birth crossfade; fetch its code once the home page and its opening have had the network to themselves.
 const birthPrefetchDelayMs=3000;
 /** The next step's code waits a little longer than the current page's own artwork and sounds. */
@@ -30,9 +34,18 @@ const nextPagePrefetchDelayMs=1500;
 const routeFor=(path:string):Route=>parseRoute(path);
 
 export function App(){
- const [route,navigate]=useRoute();
+ const [opened,navigate]=useRoute();
+ // Without the lab in this build, its address is just the home page.
+ const route:Route=opened.page==='lab'&&!LabPage?{page:'home'}:opened;
  const transition=useHomeBirthTransition(route.page,()=>navigate({page:'sound-birth'}));
  const [pending,setPending]=useState<HomeDestination|null>(null);
+ /** 返回声音诞生 from a work page goes on editing the last sound; from home, or 做一个新声音 (`/create?new`), starts fresh. */
+ const [birthEditing,setBirthEditing]=useState(false);
+ const go=(path:string)=>{
+  const [pathname,query]=path.split('?');
+  if(pathname==='/create')setBirthEditing(query!=='new'&&route.page!=='home');
+  navigate(routeFor(pathname!));
+ };
  // Keys exist only in React memory for this page session; never write them to browser storage.
  const [modelConfig,setModelConfig]=useState(emptyModelConfig);
  useEffect(()=>{if(route.page==='home')return prefetchWhenIdle(loadSoundBirth,birthPrefetchDelayMs);},[route.page]);
@@ -43,25 +56,28 @@ export function App(){
   if(route.page==='sound-world')return prefetchWhenIdle(loadCompose,nextPagePrefetchDelayMs);
   if(route.page==='compose')return prefetchWhenIdle(loadWorks,nextPagePrefetchDelayMs);
  },[route.page]);
- // 声音诞生 → 万物声场: the finished unit joins the current work (this visit only), then the field opens.
+ // 声音诞生 → 万物声场: the finished unit joins the current work (this visit only), or updates the sound it was made
+ // from, then the field opens.
  const finishSound=(draft:SoundUnitDraft,source:SoundSource)=>{
-  if(workSession.addUnit(draft,source).status==='full')return {status:'unavailable'} as const;
+  if(workSession.hasUnit(draft.id))workSession.updateUnit(draft,source);
+  else if(workSession.addUnit(draft,source).status==='full')return {status:'unavailable'} as const;
   navigate({page:'sound-world'});
   return {status:'opened'} as const;
  };
  const renderPage=()=>{
   if(route.page==='sound-birth')return <Suspense fallback={<PageFallback current="birth"/>}>
-   <HomeBirthDestination onReady={transition.ready}><SoundBirthPage entryMotion={transition.phase==='idle'} markerIndex={workSession.nextMarkerIndex()} onNavigate={path=>navigate(routeFor(path))} onFinish={finishSound}/></HomeBirthDestination>
+   <HomeBirthDestination onReady={transition.ready}><SoundBirthPage entryMotion={transition.phase==='idle'} markerIndex={workSession.nextMarkerIndex()} editing={birthEditing?workSession.lastMade():null} onNavigate={go} onFinish={finishSound}/></HomeBirthDestination>
   </Suspense>;
   // 万物声场 → 万物成曲: the arrangement is already kept in the current work by the field's repository.
   if(route.page==='sound-world')return <Suspense fallback={<PageFallback current="world"/>}>
-   <SoundWorldPage onNavigate={path=>navigate(routeFor(path))} onFinish={()=>{navigate({page:'compose'});return {status:'opened'};}}/>
+   <SoundWorldPage onNavigate={go} onFinish={()=>{navigate({page:'compose'});return {status:'opened'};}}/>
   </Suspense>;
   if(route.page==='compose')return <Suspense fallback={<PageFallback current="compose"/>}>
-   <ComposePage onNavigate={path=>navigate(routeFor(path))}/>
+   <ComposePage onNavigate={go}/>
   </Suspense>;
+  if(route.page==='lab'&&LabPage)return <Suspense fallback={<PageFallback current={null}/>}><LabPage/></Suspense>;
   if(route.page==='works')return <Suspense fallback={<PageFallback current={null}/>}>
-   <WorksPage onNavigate={path=>navigate(routeFor(path))}/>
+   <WorksPage onNavigate={go}/>
   </Suspense>;
   return null;
  };
@@ -70,7 +86,7 @@ export function App(){
  return <>
   <HomeBirthTransition phase={transition.phase} overlay={route.page!=='home'} scrollOffset={transition.scrollOffset}
    home={showHome&&<HomePage onNavigate={page=>{
-    if(page==='create'){void loadSoundBirth().catch(()=>{});transition.start();}
+    if(page==='create'){setBirthEditing(false);void loadSoundBirth().catch(()=>{});transition.start();}
     else if(page==='shelf')navigate({page:'works'});
     else setPending(page);
    }} suspended={pending!==null} departing={crossfading}/>}

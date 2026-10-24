@@ -74,6 +74,8 @@ const glyphs={
  upload:<><path d="M9.5 25h13.5a5.4 5.4 0 0 0 .7-10.75A7.8 7.8 0 0 0 9.4 12.4 6.3 6.3 0 0 0 9.5 25z" fill="currentColor"/><path d="M16 22.6v-7.4M12.8 18.2l3.2-3.2 3.2 3.2" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></>,
  note:<><path d="M12.2 7.4 26 4.2v15.6M12.2 7.4v15.4" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/><ellipse cx="8.6" cy="23.4" rx="4.8" ry="3.9" fill="currentColor"/><ellipse cx="22.4" cy="20.4" rx="4.8" ry="3.9" fill="currentColor"/></>,
  bulb:<><path d="M16 3.5a9.5 9.5 0 0 0-5.6 17.2c.9.7 1.4 1.6 1.4 2.6v.7h8.4v-.7c0-1 .5-1.9 1.4-2.6A9.5 9.5 0 0 0 16 3.5z" fill="currentColor"/><rect x="11.8" y="25.4" width="8.4" height="3.6" rx="1.8" fill="currentColor"/></>,
+ /** 课堂大屏: a solid screen on a stand. */
+ screen:<><rect x="3.5" y="5" width="25" height="17" rx="3.5" fill="currentColor"/><path d="M12 27.5h8M16 22v5.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/><path d="M9 11.5 12.5 9M9 16l7.5-5.5" fill="none" stroke="#fff" strokeOpacity=".75" strokeWidth="1.8" strokeLinecap="round"/></>,
 };
 export type GlyphName=keyof typeof glyphs;
 

@@ -2,7 +2,7 @@ import type {MoodId} from '@wanwu-v2/contracts/arrangement';
 import type {Density,Level,Metre,TextbookTrack} from '@wanwu-v2/contracts/textbook';
 import type {Inspiration} from '@wanwu-v2/contracts/work';
 import type {MatchField} from '@wanwu-v2/sound-rules/textbook-match';
-import {moodLabels} from '../creation/moodCopy';
+import {moodLabels} from '../creation/moodCopy.ts';
 
 const minutes=(ms:number)=>{const s=Math.round(ms/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
 export const metreNames:Record<Metre,string>={2:'二拍子',3:'三拍子',4:'四拍子'};

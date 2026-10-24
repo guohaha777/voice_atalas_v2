@@ -7,7 +7,7 @@ import type {SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {DEFAULT_COMPOSE_SETTINGS,MAX_INSTRUMENTS,WORK_CONTRACT_VERSION,cleanWorkTitle,isValidInspiration,parseComposeSettings,parseSavedWork} from '@wanwu-v2/contracts/work';
 import {pieceSeconds,planPlayback,withSpan} from '../src/shared/creation/arrangementTiming.ts';
 import {WorkSession} from '../src/shared/creation/workSession.ts';
-import {WorkShelf} from '../src/shared/creation/workShelf.ts';
+import {WorkShelf} from '../src/mocks/workShelf.ts';
 import {clockText,scoreLayout,scorePosition,secondsAt,soundingAt,spanChoices} from '../src/pages/compose/model/scoreLayout.ts';
 import {composeReducer,initialCompose,isShelved,shelfEntry} from '../src/pages/compose/model/composeState.ts';
 import type {ComposeState} from '../src/pages/compose/model/composeState.ts';
@@ -18,8 +18,9 @@ import {isBackgroundBrief,parseBackgroundResult} from '@wanwu-v2/contracts/backg
 import {backgroundBrief,backgroundInput} from '../src/shared/background/backgroundLayer.ts';
 import {offlineBackgroundGenerator,runBackgroundChain} from '../src/shared/background/generator.ts';
 import type {BackgroundGenerator} from '../src/shared/background/generator.ts';
-import {exampleTracks} from '../src/shared/inspiration/exampleTracks.ts';
+import {exampleTracks} from '../src/mocks/exampleTracks.ts';
 import {inspirationMatches} from '../src/shared/inspiration/matches.ts';
+import {rhythmWords,songFeature,textbookTalk} from '../src/shared/inspiration/talk.ts';
 import {isTextbookTrack} from '@wanwu-v2/contracts/textbook';
 import {parseRoute,routeHref} from '../src/app/router.ts';
 import {previewNotes} from '../src/shared/inspiration/rhythmPreview.ts';
@@ -166,6 +167,36 @@ test('万物成曲 refuses a length too short for the longest sound',()=>{
  const refused=composeReducer(state,{type:'span',spanSeconds:20,now});
  assert.equal(refused.arrangement,state.arrangement);assert.equal(refused.lastAction,'span-blocked');
  assert.equal(composeReducer(state,{type:'span',spanSeconds:45,now}).arrangement!.spanSeconds,45);
+});
+
+test('课本: the child picks a shape of the song; the background, the AI brief and the talk follow it',()=>{
+ let state=loaded(work({events:[ev('a',0,0,4),ev('b',.5,0,3)]}));
+ assert.equal(composeReducer(state,{type:'variation',variation:'stretch'}),state,'no song chosen: nothing to shape');
+ state=composeReducer(state,{type:'inspiration',inspiration:{kind:'textbook',entryId:'tb:mock:lullaby'}});
+ state=composeReducer(state,{type:'variation',variation:'lower'});
+ assert.deepEqual(state.settings.inspiration,{kind:'textbook',entryId:'tb:mock:lullaby',variation:'lower'});
+ assert.ok(parseComposeSettings(state.settings));
+ assert.equal(isValidInspiration({kind:'textbook',entryId:'x',variation:'sideways'}),false);
+ const input=backgroundInput(state.arrangement!,state.settings.inspiration,exampleTracks);
+ assert.equal(input.textbook?.variation,'lower');assert.equal(backgroundPlan(input).variation,'lower');
+ assert.equal(backgroundBrief(state.arrangement!,state.settings.inspiration,exampleTracks,[])!.variation,'lower');
+ const track=exampleTracks.find(item=>item.id==='tb:mock:lullaby')!;
+ assert.equal(rhythmWords([2,1]),'嗒— 嗒');assert.equal(rhythmWords([.5,.5,1]),'嘀 嘀 嗒');
+ assert.equal(songFeature(track),'「摇篮曲」是三拍子，节奏是「嗒— 嗒」，像摇篮轻轻晃。');
+ const talk=textbookTalk(track,'lower',{kind:'together',example:0},'蛙鸣');
+ assert.deepEqual(Object.keys(talk),['feature','shape','meeting','task']);
+ assert.match(talk.meeting,/「蛙鸣」正好落在拍子上/);assert.match(talk.shape,/低处/);
+});
+
+test('the shelf can rename a work and take one off; empty names are refused',()=>{
+ const shelf=new WorkShelf(),first=shelfEntry(loaded(work()),'一',now,rendering)!,second=shelfEntry(loaded(work({id:'work:2'})),'二',now,rendering)!;
+ shelf.put(first);shelf.put(second);
+ assert.equal(shelf.rename('work:1','   '),null);
+ const renamed=shelf.rename('work:1','  下雨的歌  ')!;
+ assert.equal(renamed.title,'下雨的歌');assert.equal(renamed.savedAt,first.savedAt);
+ assert.deepEqual(shelf.list().map(item=>item.title),['二','下雨的歌'],'its place stays');
+ assert.equal(shelf.remove('work:2'),true);assert.equal(shelf.remove('work:2'),false);
+ assert.deepEqual(shelf.list().map(item=>item.id),['work:1']);
 });
 
 test('the AI background request is an anonymous brief with the textbook song\'s features only',()=>{

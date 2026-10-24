@@ -52,6 +52,11 @@ export function FooterBar({compose,onSave,onBack,onAgain}:{compose:Compose;onSav
    <p className={styles.teachLead}>{composeCopy.teachLead}</p>
    {/* Only this list scrolls (wheel, touch, or arrow keys once focused); the title row above stays in place. */}
    <ol tabIndex={0} aria-label={composeCopy.teachTitle}>
+    {/* 课本讲解 first when a textbook song is chosen: feature → this shape → what happened → one thing to try. */}
+    {compose.talk&&<li className={styles.talk}>
+     <b>{composeCopy.talkTitle}<small>{composeCopy.talkSource}</small></b>
+     {(['feature','shape','meeting','task'] as const).map(part=><p key={part}><em>{composeCopy.talkParts[part]}</em>{compose.talk![part]}</p>)}
+    </li>}
     {discoveries.map((item,i)=>{
      const text=discoveryText(item);
      return <li key={`${item.kind}-${i}`}>

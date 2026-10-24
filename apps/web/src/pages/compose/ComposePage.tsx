@@ -1,10 +1,12 @@
 import {useState} from 'react';
 import {flowSteps} from '../../app/navigation';
 import {backgroundCopy} from '../../shared/background/copy';
+import {songFeature} from '../../shared/inspiration/talk';
 import {longestSound,minSpan} from '../../shared/creation/arrangementTiming';
 import {FlowHeader} from '../../shared/ui/FlowHeader';
 import {Glyph} from '../../shared/ui/PaperIcon';
 import {WorkHeaderActions} from '../../shared/ui/WorkHeaderActions';
+import {useClassroom} from '../../shared/ui/classroom';
 import {WorkIntro} from '../../shared/ui/WorkIntro';
 import {composeCopy} from './config/copy';
 import {composeGuide,guideLines} from './config/guide';
@@ -51,7 +53,8 @@ function guideText(compose:Compose){
  if(lastAction==='span')return guideLines.span(arrangement.spanSeconds);
  if(lastAction==='span-blocked'){const longest=longestSound(arrangement);if(longest)return guideLines.spanBlocked(longest.unit.name,Math.ceil(longest.seconds-1e-6),minSpan(arrangement));}
  const said=spokenBackground(compose);if(said)return said;
- if(lastAction==='inspiration')return guideLines.inspiration;
+ if(lastAction==='inspiration')return compose.entry?guideLines.inspirationSong(songFeature(compose.entry)):guideLines.inspiration;
+ if(lastAction==='variation'&&compose.talk)return guideLines.variation(compose.talk.shape);
  if(compose.now>0)return guideLines.paused;
  if(arrangement.origin==='example')return guideLines.example;
  return guideLines.idle;
@@ -62,6 +65,7 @@ type Dialog='save'|{textbook:InspirationTab}|'again'|null;
 /** 万物成曲: the field's arrangement as a graphic score with one playback clock, plus length, background, inspiration and the shelf. */
 export function ComposePage({onNavigate}:{onNavigate:(path:string)=>void}){
  const compose=useCompose();
+ const classroom=useClassroom();
  const [dialog,setDialog]=useState<Dialog>(null);
  const text=guideText(compose);
  const savedNote=compose.state.lastAction==='saved'&&compose.shelved;
@@ -74,7 +78,7 @@ export function ComposePage({onNavigate}:{onNavigate:(path:string)=>void}){
   else void startAgain();
  };
  return <div className={styles.shell}>
-  <FlowHeader steps={flowSteps} current="compose" onNavigate={onNavigate} aside={<WorkHeaderActions onNavigate={onNavigate}/>}/>
+  <FlowHeader steps={flowSteps} current="compose" onNavigate={onNavigate} aside={<WorkHeaderActions onNavigate={onNavigate} classroom={classroom}/>}/>
   <main className={styles.page}>
    <WorkIntro title={composeCopy.title} subtitle={composeCopy.subtitle} guide={composeGuide} text={text} tone={compose.state.notice?.tone} fit className={styles.intro}/>
    <div className={styles.workspace}>

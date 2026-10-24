@@ -5,17 +5,18 @@ import {audioSupported} from '../../../shared/audio/audioContext';
 import {unchangedBy} from '@wanwu-v2/sound-rules/shaping';
 import {SequencePlayer} from '../../../shared/audio/SequencePlayer';
 import {analysisOf} from '../../../shared/audio/soundAnalysis';
-import {decodeAudio} from '../../../shared/audio/loadAudio';
+import {decodeAudio,loadAudio} from '../../../shared/audio/loadAudio';
+import {EXAMPLE_TIMEOUT_MS,exampleSourceUrl} from '../../../shared/creation/exampleSounds';
 import {newId} from '../../../shared/creation/ids';
 import {FILE_MAX_BYTES,birthCopy} from '../config/copy';
 import {sessionArchive} from '../../../shared/creation/sourceArchive';
 import {libraryGroups} from '../services/soundLibrary';
-import {presetHintProvider} from '../services/soundHints';
+import {services} from '../../../app/services';
 import type {SoundHint,SoundHintProvider} from '../services/soundHints';
 import {exampleItems} from '../config/examples';
 import {baseName,describeExcerpt,describeLocal} from './localSource';
 import type {Notify} from './localSource';
-import {finishCheck,initialSoundBirth,soundBirthReducer,toSoundUnitDraft} from './soundBirthState';
+import {editingSoundBirth,finishCheck,initialSoundBirth,soundBirthReducer,toSoundUnitDraft} from './soundBirthState';
 import {TRIM_FILE_MAX_MS} from './trimEditing';
 import {useLibraryItems} from './useLibraryItems';
 import {useRecording} from './useRecording';
@@ -26,11 +27,15 @@ export type FinishResult={status:'unavailable'}|{status:'opened'};
 export type {CompareTarget} from './useShapedPreview';
 export type {RecordPhase} from './useRecording';
 export type ProvenanceField='label'|'recordedBy'|'recordedOn'|'place'|'group';
+/** A sound already in the work, opened again from 万物声场 (返回声音诞生) to go on editing it. */
+export type EditingSound={unit:SoundUnitDraft;source:SoundSource};
 
 /** 声音诞生: bring a sound in (library, file, recording), shape it with the five choices, check its card, finish.
  *  Recording, trimming, library loading and the shaped preview live in their own hooks; this one ties them together. */
-export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,source:SoundSource)=>FinishResult,hints:SoundHintProvider=presetHintProvider){
- const [state,dispatch]=useReducer(soundBirthReducer,markerIndex,initialSoundBirth);
+export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,source:SoundSource)=>FinishResult,hints:SoundHintProvider=services.soundHints,editing:EditingSound|null=null){
+ const [state,dispatch]=useReducer(soundBirthReducer,null,()=>editing?editingSoundBirth(editing.unit,editing.source):initialSoundBirth(markerIndex));
+ /** While the child keeps the same source, 做好了 updates the sound being edited; a new source makes a new sound. */
+ const editTarget=useRef(editing&&{unitId:editing.unit.id,sourceId:editing.source.id,markerIndex:editing.unit.markerIndex});
  const local=useSyncExternalStore(sessionArchive.subscribe,sessionArchive.list);
  const [playing,setPlaying]=useState<string|null>(null);
  const [progress,setProgress]=useState(0);
@@ -48,9 +53,14 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
  const sourceBuffer=state.source?bufferOf(state.source.id):null;
 
  const preview=useShapedPreview(player,playing,notify,()=>{const source=latest.current.source;return {source,buffer:source&&bufferOf(source.id)||null};},sourceBuffer??null,state.shape);
+ /** The source whose silence the child was already told about at 做好了 (a second press goes on). */
+ const silentWarned=useRef<string|null>(null);
  const useSource=(source:SoundSource,buffer:AudioBuffer)=>{
   buffers.current.set(source.id,buffer);player.stop();preview.reset();setBlocked(false);
-  dispatch({type:'source-ready',source});
+  const target=editTarget.current;
+  dispatch({type:'source-ready',source,markerIndex:target?(source.id===target.sourceId?target.markerIndex:markerIndex):undefined});
+  // Nothing to hear (声音体检 found no sound): tell the child right away; the recording itself is kept.
+  if(analysisOf(buffer).silent)notify('bar',birthCopy.silent,'info');
  };
  const archiveAndUse=(source:SoundSource,buffer:AudioBuffer)=>{sessionArchive.save(source,buffer);useSource(source,buffer);};
  const recording=useRecording(player,playing,notify,take=>archiveAndUse(describeLocal('local-recording',birthCopy.defaultRecordingName,take.buffer,take.mimeType),take.buffer));
@@ -71,6 +81,23 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
   let frame=0;const tick=()=>{setProgress(player.progress()??0);frame=requestAnimationFrame(tick);};
   frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame);
  },[playing,player]);
+
+ // Editing a sound again: say so, and load its audio if this page does not hold it (a library example).
+ useEffect(()=>{
+  if(!editing)return;
+  notify('editor',birthCopy.editing(editing.unit.name),'info');
+  const {source}=editing;
+  if(bufferOf(source.id))return;
+  const url=source.kind==='example'?exampleSourceUrl(source.id):null;
+  if(!url){notify('bar',birthCopy.editMissing);return;}
+  const controller=new AbortController();
+  dispatch({type:'reading',reading:true});
+  void loadAudio(url,{signal:controller.signal,timeoutMs:EXAMPLE_TIMEOUT_MS})
+   .then(buffer=>{buffers.current.set(source.id,buffer);dispatch({type:'reading',reading:false});})
+   .catch(()=>{if(!controller.signal.aborted){dispatch({type:'reading',reading:false});notify('bar',birthCopy.editMissing);}});
+  return()=>controller.abort();
+ // Once, for the sound this page was opened with.
+ },[]);
 
  // Leaving the page or hiding the tab stops sound; a running recording is stopped and kept for review.
  useEffect(()=>{
@@ -144,8 +171,11 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
    case 'no-source':return notify('bar',birthCopy.needSound,'info');
    case 'missing-provenance':return notify('info',birthCopy.needProvenance,'info');
    case 'ready':{
+    // A silent sound may still be used, but only after the child has heard the warning once.
+    if(analysisNow()?.silent&&silentWarned.current!==state.source?.id){silentWarned.current=state.source?.id??null;return notify('bar',birthCopy.silentFinish,'info');}
     if(!state.cardConfirmed)dispatch({type:'card',confirmed:true});
-    const draft=toSoundUnitDraft(state,newId('unit'),new Date(),analysisNow()??undefined);if(!draft||!state.source)return;
+    const target=editTarget.current,id=target&&state.source?.id===target.sourceId?target.unitId:newId('unit');
+    const draft=toSoundUnitDraft(state,id,new Date(),analysisNow()??undefined);if(!draft||!state.source)return;
     player.stop();
     if(onFinish(draft,state.source).status==='unavailable'){setBlocked(true);notify('editor',birthCopy.worldUnavailable,'info');}
    }

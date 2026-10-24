@@ -17,6 +17,8 @@ export class WorkSession{
  private arrangement:Arrangement|null=null;
  private composeSettings:ComposeSettings=DEFAULT_COMPOSE_SETTINGS;
  private sources=new Map<string,SoundSource>();
+ /** The sound last made (or changed) in 声音诞生 for this work: 返回声音诞生 goes on editing it. */
+ private lastMadeId:string|null=null;
  private listeners=new Set<()=>void>();
 
  current=():Arrangement|null=>this.arrangement;
@@ -39,8 +41,30 @@ export class WorkSession{
   const added={...unit,markerIndex};
   if(source)this.sources.set(source.id,source);
   this.arrangement={...work,units:[...work.units,added],updatedAt:now.toISOString()};
+  this.lastMadeId=added.id;
   this.emit();
   return {status:'added',unit:added};
+ }
+
+ /** The last sound made in 声音诞生 and its source, or null (none yet, an example work, or a new work). */
+ lastMade(){
+  const unit=this.own()?.units.find(item=>item.id===this.lastMadeId),source=unit&&this.sources.get(unit.sourceId);
+  return unit&&source?{unit,source}:null;
+ }
+ /** Whether the current work already holds this unit (声音诞生 then updates it instead of adding a new one). */
+ hasUnit(id:string){return !!this.own()?.units.some(unit=>unit.id===id);}
+
+ /**
+  * 声音诞生 changed a sound already in the work: same id and marker, new name / five choices / analysis. Its places in
+  * 万物声场 stay; a sound that became longer than the field makes the field grow when it opens.
+  */
+ updateUnit(unit:SoundUnitDraft,source:SoundSource|null,now=new Date()){
+  const work=this.own(),current=work?.units.find(item=>item.id===unit.id);
+  if(!work||!current)return false;
+  if(source)this.sources.set(source.id,source);
+  this.arrangement={...work,units:work.units.map(item=>item.id===unit.id?{...unit,markerIndex:current.markerIndex}:item),updatedAt:now.toISOString()};
+  this.lastMadeId=unit.id;this.emit();
+  return true;
  }
 
  /** Stores the page's arrangement after validating it, so a broken state is never kept. */
@@ -60,12 +84,12 @@ export class WorkSession{
 
  /** Reopen a work from the shelf as the current work (its arrangement and settings). */
  open(work:SavedWork){
-  this.arrangement=work.arrangement;this.composeSettings=work.settings;this.emit();
+  this.arrangement=work.arrangement;this.composeSettings=work.settings;this.lastMadeId=null;this.emit();
  }
 
  /** 再来一首: start a new, empty work. Recordings stay in the source archive; shelved works stay on the shelf. */
  reset(){
-  this.arrangement=null;this.composeSettings=DEFAULT_COMPOSE_SETTINGS;this.emit();
+  this.arrangement=null;this.composeSettings=DEFAULT_COMPOSE_SETTINGS;this.lastMadeId=null;this.emit();
  }
 
  private nextFree(work:Arrangement){

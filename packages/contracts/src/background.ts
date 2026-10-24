@@ -7,8 +7,8 @@
 // placement are never changed by any step; a background is a separate layer the child may switch back from.
 import {MOODS} from './arrangement.ts';
 import type {MoodId} from './arrangement';
-import {DENSITIES,LEVELS,TEXTBOOK_MODES} from './textbook.ts';
-import type {Density,Level,Metre,TextbookTrack} from './textbook';
+import {DENSITIES,LEVELS,TEXTBOOK_MODES,TEXTBOOK_VARIATIONS} from './textbook.ts';
+import type {Density,Level,Metre,TextbookTrack,TextbookVariation} from './textbook';
 
 export const BACKGROUND_REQUEST_VERSION='background-request-v1' as const;
 
@@ -39,6 +39,8 @@ export type BackgroundBrief={
  /** The arrangement in the same words as the textbook features. */
  arrangement:{density:Density;repetition:Level;register:Level};
  textbook:TextbookFeatures|null;
+ /** Which shape of the song's feature to play (换几种样子); null without a textbook song. */
+ variation:TextbookVariation|null;
  /** Instrument ids the child chose (who should play the notes); [] = the original soft voice. */
  instruments:string[];
  rules:RuleVersions;
@@ -67,6 +69,7 @@ export function isBackgroundBrief(value:unknown):value is BackgroundBrief{
  const arrangement=raw.arrangement as Record<string,unknown>|null;
  if(!arrangement||!DENSITIES.includes(arrangement.density as Density)||!LEVELS.includes(arrangement.repetition as Level)||!LEVELS.includes(arrangement.register as Level))return false;
  if(!Array.isArray(raw.instruments)||!raw.instruments.every(nonEmpty))return false;
+ if(raw.variation!==null&&!TEXTBOOK_VARIATIONS.includes(raw.variation as TextbookVariation))return false;
  const rules=raw.rules as Record<string,unknown>|null;
  return !!rules&&['analysis','shaping','background','mix'].every(key=>nonEmpty(rules[key]));
 }

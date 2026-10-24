@@ -1,7 +1,8 @@
 // Minimal history routing for the approved pages; no router library. Unknown paths fall back to home.
 import {useCallback,useEffect,useState} from 'react';
 
-export type Route={page:'home'}|{page:'sound-birth'}|{page:'sound-world'}|{page:'compose'}|{page:'works'};
+/** `lab`: 调音台, only built in development or a preview build (the app falls back to home elsewhere). */
+export type Route={page:'home'}|{page:'sound-birth'}|{page:'sound-world'}|{page:'compose'}|{page:'works'}|{page:'lab'};
 
 export function parseRoute(pathname:string):Route{
  const path=pathname.replace(/\/+$/,'');
@@ -9,12 +10,14 @@ export function parseRoute(pathname:string):Route{
  if(path==='/compose')return {page:'compose'};
  if(path==='/works')return {page:'works'};
  if(path==='/create')return {page:'sound-birth'};
+ if(path==='/lab/sound-rules')return {page:'lab'};
  return {page:'home'};
 }
 export function routeHref(route:Route){
  if(route.page==='sound-world')return '/world';
  if(route.page==='compose')return '/compose';
  if(route.page==='works')return '/works';
+ if(route.page==='lab')return '/lab/sound-rules';
  return route.page==='home'?'/':'/create';
 }
 

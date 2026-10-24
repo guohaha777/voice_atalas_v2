@@ -20,7 +20,7 @@ export const guideLines={
  // The background switch, 课本灵感 and the mood carry no small text: the frog says what they mean.
  backgroundOn:(what:string)=>`背景音乐开啦：${what}。点「听听这段声音」听听看～`,
  backgroundOff:'背景音乐关啦，现在只听自己的声音。',
- inspirationSong:(title:string,metre:string)=>`借了「${title}」的${metre}，背景跟着它的节奏走，你的声音一点没变。`,
+ inspirationSong:(feature:string)=>`${feature}先点「听听这段声音」听一听，再摆你的声音。`,
  inspirationMusic:'教学音乐先放在这台设备上，等后台分析后背景才会跟着它；现在背景跟着心情走。',
  inspirationNone:'先不用课本，背景跟着心情走。',
  mood:(mood:string,mode:string)=>`心情是「${mood}」，背景变成${mode}啦。`,

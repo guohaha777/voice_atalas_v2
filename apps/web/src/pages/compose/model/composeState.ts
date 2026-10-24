@@ -4,6 +4,7 @@
 import {SPAN_CHOICES} from '@wanwu-v2/contracts/arrangement';
 import type {Arrangement,SpanSeconds} from '@wanwu-v2/contracts/arrangement';
 import {DEFAULT_COMPOSE_SETTINGS,MAX_INSTRUMENTS,WORK_CONTRACT_VERSION,cleanWorkTitle} from '@wanwu-v2/contracts/work';
+import type {TextbookVariation} from '@wanwu-v2/contracts/textbook';
 import type {ComposeSettings,Inspiration,Rendering,SavedWork} from '@wanwu-v2/contracts/work';
 import {fitSpan,spanHolds,withSpan} from '../../../shared/creation/arrangementTiming.ts';
 
@@ -16,7 +17,9 @@ export type ComposeLastAction='span'|'span-blocked'|'inspiration'|'saved'
  /** The AI background chip was tapped (switched, or asked about while AI is not open). */
  |'ai-background'
  /** An AI background just came back: the squirrel offers it (it is never switched on by itself). */
- |'ai-ready'|null;
+ |'ai-ready'
+ /** A shape of the textbook song's feature was picked (换几种样子). */
+ |'variation'|null;
 export type ComposeState={
  arrangement:Arrangement|null;
  settings:ComposeSettings;
@@ -33,6 +36,8 @@ export type ComposeAction=
  /** Tap an instrument: add it, or take it away if it is already chosen. */
  |{type:'instrument';id:string}
  |{type:'inspiration';inspiration:Inspiration}
+ /** 换几种样子: which shape of the chosen textbook song's feature the background plays. */
+ |{type:'variation';variation:TextbookVariation}
  |{type:'saved';work:SavedWork}
  |{type:'notice';notice:ComposeNotice}
  /** Nothing changes but what the squirrel says (tapping the instruments that are not open yet). */
@@ -75,6 +80,11 @@ export function composeReducer(state:ComposeState,action:ComposeAction):ComposeS
   }
   case 'inspiration':
    return {...state,settings:{...state.settings,inspiration:action.inspiration},notice:null,lastAction:action.inspiration.kind==='none'?null:'inspiration'};
+  case 'variation':{
+   const inspiration=state.settings.inspiration;
+   if(inspiration.kind!=='textbook')return state;
+   return {...state,settings:{...state.settings,inspiration:{...inspiration,variation:action.variation}},notice:null,lastAction:'variation'};
+  }
   case 'saved':return {...state,shelved:action.work,notice:null,lastAction:'saved'};
   case 'notice':return {...state,notice:action.notice};
   case 'said':return {...state,notice:null,lastAction:action.lastAction};

@@ -24,7 +24,8 @@ export type SoundBirthState={
 export type SoundBirthAction=
  |{type:'dialog';dialog:CaptureDialog}
  |{type:'reading';reading:boolean}
- |{type:'source-ready';source:SoundSource}
+ /** `markerIndex`: the number the sound gets (a new sound while editing another takes the next free one). */
+ |{type:'source-ready';source:SoundSource;markerIndex?:number}
  |{type:'source-update';source:SoundSource}
  |{type:'rename';name:string}
  |{type:'maker';name:string}
@@ -34,6 +35,11 @@ export type SoundBirthAction=
  |{type:'clear';dimension:SoundDimension}
  |{type:'card-photo';url:string|null}
  |{type:'notice';notice:Notice};
+
+/** Going on editing a sound already in the work: its source, name, maker, five choices and number; the card stays checked. */
+export function editingSoundBirth(unit:SoundUnitDraft,source:SoundSource):SoundBirthState{
+ return {...initialSoundBirth(unit.markerIndex),source,name:unit.name,maker:unit.maker,cardConfirmed:true,shape:{...unit.shape}};
+}
 
 /** `markerIndex` is assigned by the work this sound joins (its number in 万物声场), so the marker never changes later. */
 export function initialSoundBirth(markerIndex=0):SoundBirthState{
@@ -49,7 +55,8 @@ export function soundBirthReducer(state:SoundBirthState,action:SoundBirthAction)
    // The maker starts as whoever recorded a local sound; it is only a suggestion and stays editable.
    const maker=state.maker??(action.source.kind==='example'?null:normalizeMakerName(action.source.provenance.recordedBy??''));
    // Bundled examples are documented already; a local sound starts unconfirmed until its info is checked.
-   return {...state,source:action.source,name:action.source.label,maker,cardConfirmed:action.source.kind==='example',dialog:null,reading:false,notice:null};
+   return {...state,source:action.source,name:action.source.label,maker,cardConfirmed:action.source.kind==='example',dialog:null,reading:false,notice:null,
+    markerIndex:action.markerIndex??state.markerIndex};
   }
   case 'source-update':
    if(state.source?.id!==action.source.id)return state;

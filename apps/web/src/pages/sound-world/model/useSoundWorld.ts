@@ -4,17 +4,14 @@ import type {TextbookTrack} from '@wanwu-v2/contracts/textbook';
 import {DEFAULT_COMPOSE_SETTINGS} from '@wanwu-v2/contracts/work';
 import type {ComposeSettings,Inspiration} from '@wanwu-v2/contracts/work';
 import type {Instrument} from '../../../shared/background/instruments';
-import {mockBackgroundLibrary} from '../../../shared/background/library';
 import type {BackgroundLibrary} from '../../../shared/background/library';
 import {useBackgroundLayer} from '../../../shared/background/useBackgroundLayer';
-import {mockInspirationCatalog} from '../../../shared/inspiration/catalog';
 import type {InspirationCatalog} from '../../../shared/inspiration/catalog';
 import {inspirationMatches} from '../../../shared/inspiration/matches';
 import type {SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {newId} from '../../../shared/creation/ids';
-import {mockSoundWorldRepository} from '../services/soundWorldRepository';
+import {services} from '../../../app/services';
 import type {LibraryScope,SoundWorldRepository} from '../services/soundWorldRepository';
-import {offlineMoodInterpreter} from '../services/moodInterpreter';
 import type {MoodInterpreter} from '../services/moodInterpreter';
 import {eventOf,initialSoundWorld,nudge,placedClip,rowEndSpot,soundWorldReducer,spanHolds,unitOf} from './soundWorldState';
 import type {NoticeKey} from './soundWorldState';
@@ -28,7 +25,7 @@ export type FieldSpot={at:number;row:number};
 /** 万物声场: place the work's sounds along time, edit their excerpts, pick a mood and a textbook song, then go on to
  *  万物成曲. What the field sounds like lives in useFieldSound (with the local background from useBackgroundLayer, the
  *  same layer 万物成曲 plays) and the mood in useMood; this hook owns the arrangement and the shared settings. */
-export function useSoundWorld(onFinish:(arrangement:Arrangement)=>FinishResult,repository:SoundWorldRepository=mockSoundWorldRepository,moods:MoodInterpreter=offlineMoodInterpreter,inspirations:InspirationCatalog=mockInspirationCatalog,backgrounds:BackgroundLibrary=mockBackgroundLibrary){
+export function useSoundWorld(onFinish:(arrangement:Arrangement)=>FinishResult,repository:SoundWorldRepository=services.soundWorldRepository,moods:MoodInterpreter=services.moodInterpreter,inspirations:InspirationCatalog=services.inspirationCatalog,backgrounds:BackgroundLibrary=services.backgroundLibrary){
  const [state,dispatch]=useReducer(soundWorldReducer,initialSoundWorld);
  const latest=useRef(state);latest.current=state;
  const notify=useCallback((key:NoticeKey,tone:'info'|'error'='error')=>dispatch({type:'notice',notice:{tone,key}}),[]);
