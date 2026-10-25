@@ -1,4 +1,4 @@
-import {useSyncExternalStore} from 'react';
+import {useEffect,useSyncExternalStore} from 'react';
 import type {SavedWork} from '@wanwu-v2/contracts/work';
 import {services} from '../../../app/services';
 import type {ShelfRepository} from '../services/shelfRepository';
@@ -10,6 +10,8 @@ import type {ShelfRepository} from '../services/shelfRepository';
 export function useWorkShelf(repository:ShelfRepository=services.shelfRepository){
  const works=useSyncExternalStore(repository.subscribe,repository.list);
  const current=useSyncExternalStore(repository.subscribe,repository.currentId);
+ // Shows the shelf already on this device at once, then whatever the server has.
+ useEffect(()=>{void repository.refresh();},[repository]);
  return {
   works,currentId:current,
   /** True when opening `work` would lose an unsaved current piece. */

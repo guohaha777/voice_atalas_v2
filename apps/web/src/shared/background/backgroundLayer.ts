@@ -43,7 +43,8 @@ export function textbookFeatures(track:TextbookTrack):TextbookFeatures{
 /**
  * The anonymous brief an AI background request carries: the same frame the local background uses (length, when the
  * child's sounds play, tempo, metre, mode, mood), the arrangement in the textbook's words, the textbook song's features,
- * the chosen instruments and the rule versions. No recordings, sound names, makers, places or source ids.
+ * the teaching music's upload id (not its file name), the chosen instruments and the rule versions. No recordings,
+ * sound names, makers, places or source ids.
  */
 export function backgroundBrief(arrangement:Arrangement,inspiration:Inspiration,tracks:readonly TextbookTrack[],instruments:readonly string[]):BackgroundBrief|null{
  const summary=workSummary(arrangement);
@@ -55,6 +56,7 @@ export function backgroundBrief(arrangement:Arrangement,inspiration:Inspiration,
   arrangement:{density:summary.density,repetition:summary.repetition,register:summary.register},
   textbook:track?textbookFeatures(track):null,
   variation:input.textbook?.variation??null,
+  teachingMusic:inspiration.kind==='teaching-music'?{musicId:inspiration.musicId}:null,
   instruments:[...instruments],rules:{...RULE_VERSIONS},
  };
 }

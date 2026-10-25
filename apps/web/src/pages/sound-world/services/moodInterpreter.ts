@@ -2,7 +2,8 @@
 // them; the model maps the words to the closest preset for 万物成曲, and the child's words are kept exactly as written.
 // No model is connected yet, so the offline interpreter reports itself unavailable and the page says so plainly.
 //
-// Intended server endpoint (not implemented; the key stays on the server):
+// Intended server endpoint (protocol v0.4; not implemented; the key stays on the server; open to visitors, limited per
+// IP and device):
 //   POST /api/v1/moods/interpret  ← {text}  → {nearest: MoodId|null}
 import {MOOD_TEXT_MAX,MOODS} from '@wanwu-v2/contracts/arrangement';
 import type {MoodId} from '@wanwu-v2/contracts/arrangement';

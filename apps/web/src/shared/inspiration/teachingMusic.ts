@@ -1,13 +1,21 @@
 // Teaching music for 课本灵感: a teacher picks the class's textbook / teaching recording on this device. Today it stays
 // on this device for this visit (listen only) — nothing is uploaded, analysed or generated.
 //
-// Intended flow once the backend exists (not implemented; the server owns accounts, licence checks and review):
-//   1. POST /api/v1/teaching-music            ← audio file (teacher account, licence confirmation) → {musicId,status:'analysing'}
-//   2. GET  /api/v1/teaching-music/{musicId}  → {status:'ready',features:{tempo,metre,key,mood,phrases}}  (server-side analysis)
-//   3. POST /api/v1/works/{workId}/background ← {musicId,arrangement,instruments} → job → {backgroundUrl}
-//      The server combines the music's features with how the child arranged the sounds (where they cluster, rests,
-//      length, mood) and generates a matching background layer. It never alters the child's sounds or placement and
-//      never copies the teaching music's melody into the piece.
+// Intended flow once the backend exists (protocol v0.4; not implemented; teacher sign-in; the server owns accounts,
+// licence checks and review):
+//   1. POST /api/v1/teaching-music                     ← {mimeType, bytes, durationMs, licenseConfirmed:true,
+//                                                         licenseVersion} → {musicId, uploadUrl, expiresAt}
+//      The server records which teacher confirmed which licence text, and when. Limits as below (30 MiB, 10 minutes).
+//   2. The file goes straight to object storage at `uploadUrl` (in parts, resumable on a weak network), not through the API.
+//   3. POST /api/v1/teaching-music/{musicId}/complete  → {musicId, status:'analysing'}
+//   4. GET  /api/v1/teaching-music/{musicId}           → {status:'analysing'} | {status:'ready',features:{tempo,metre,key,
+//      mood,phrases}}. Once analysed the server deletes the audio and keeps only the features — like textbook songs,
+//      whose audio never goes to the cloud.
+//   5. POST /api/v1/backgrounds ← BackgroundBrief with teachingMusic:{musicId} (+ step) → {jobId}, then
+//      GET /api/v1/backgrounds/{jobId} → BackgroundResult: the same AI background entry as without teaching music
+//      (shared/background/generator.ts). The server combines the music's features with how the child arranged the
+//      sounds (where they cluster, rests, length, mood) and generates a matching background layer. It never alters the
+//      child's sounds or placement and never copies the teaching music's melody into the piece.
 import {newId} from '../creation/ids';
 
 export const TEACHING_MUSIC_MAX_BYTES=30*1024*1024;

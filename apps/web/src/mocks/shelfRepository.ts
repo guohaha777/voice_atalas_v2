@@ -12,6 +12,8 @@ const subscribeBoth=(listener:()=>void)=>{
 export const mockShelfRepository:ShelfRepository={
  list:workShelf.list,
  subscribe:subscribeBoth,
+ // Nothing to fetch: the shelf of this visit is already here.
+ async refresh(){},
  currentId:()=>workSession.current()?.id??null,
  hasUnsavedCurrent(){
   const current=workSession.current();
@@ -19,7 +21,7 @@ export const mockShelfRepository:ShelfRepository={
   const shelved=workShelf.get(current.id);
   return !shelved||shelved.arrangement.updatedAt!==current.updatedAt||JSON.stringify(shelved.settings)!==JSON.stringify(workSession.settings());
  },
- open:work=>workSession.open(work),
- remove:id=>workShelf.remove(id),
- rename:(id,title)=>workShelf.rename(id,title),
+ async open(work){workSession.open(work);},
+ async remove(id){return workShelf.remove(id);},
+ async rename(id,title){return workShelf.rename(id,title);},
 };

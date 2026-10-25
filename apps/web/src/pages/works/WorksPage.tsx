@@ -36,9 +36,9 @@ export function WorksPage({onNavigate}:{onNavigate:(path:string)=>void}){
   return()=>{live=false;};
  },[]);
  const player=useShelfPlayer(instruments,tracks,setFailure);
- const open=(work:SavedWork)=>{player.stop();shelf.open(work);onNavigate('/compose');};
+ const open=(work:SavedWork)=>{player.stop();void shelf.open(work).then(()=>onNavigate('/compose'));};
  const text=failure?shelfCopy.failures[failure]:shelfCopy.bubble(shelf.works.length);
- const saveName=()=>{if(renaming&&shelf.rename(renaming.work.id,renaming.title))setRenaming(null);};
+ const saveName=async()=>{if(renaming&&await shelf.rename(renaming.work.id,renaming.title))setRenaming(null);};
  return <div className={styles.shell}>
   <WorkBackdrop/>
   <FlowHeader steps={flowSteps} current={null} onNavigate={onNavigate} aside={<WorkHeaderActions onNavigate={onNavigate} current="shelf"/>}/>
@@ -62,7 +62,7 @@ export function WorksPage({onNavigate}:{onNavigate:(path:string)=>void}){
    </section>}
   </main>
   {renaming&&<WorkSheet title={shelfCopy.rename.title} description={shelfCopy.rename.description} onClose={()=>setRenaming(null)}>
-   <form onSubmit={event=>{event.preventDefault();saveName();}}>
+   <form onSubmit={event=>{event.preventDefault();void saveName();}}>
     <input className={styles.renameField} value={renaming.title} maxLength={WORK_TITLE_MAX} placeholder={shelfCopy.rename.placeholder} aria-label={shelfCopy.rename.title}
      autoFocus onChange={event=>setRenaming({...renaming,title:event.target.value})}/>
     <div className={sheetStyles.actions}>
@@ -74,7 +74,7 @@ export function WorksPage({onNavigate}:{onNavigate:(path:string)=>void}){
   {removing&&<WorkSheet title={shelfCopy.remove.title} description={shelfCopy.remove.description(removing.title)} onClose={()=>setRemoving(null)}>
    <div className={sheetStyles.actions}>
     <button type="button" className={sheetStyles.secondary} onClick={()=>setRemoving(null)}>{shelfCopy.remove.cancel}</button>
-    <button type="button" className={sheetStyles.primary} onClick={()=>{if(player.playing===removing.id)player.stop();shelf.remove(removing.id);setRemoving(null);}}>{shelfCopy.remove.confirm}</button>
+    <button type="button" className={sheetStyles.primary} onClick={()=>{if(player.playing===removing.id)player.stop();void shelf.remove(removing.id);setRemoving(null);}}>{shelfCopy.remove.confirm}</button>
    </div>
   </WorkSheet>}
   {asking&&<WorkSheet title={shelfCopy.replace.title} description={shelfCopy.replace.description} onClose={()=>setAsking(null)}>

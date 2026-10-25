@@ -3,7 +3,8 @@
 // checks it) → local notes (rules in the browser) → only the child's sounds. The local step needs none of this.
 //
 // The brief is an anonymous structure summary: timing, mood, density and the textbook song's features. It never holds
-// recordings, sound names, people, places or the textbook song itself — only its features. The child's sounds and
+// recordings, sound names, people, places or the textbook song itself — only its features; teaching music is referred to
+// by the id of its upload, never its file name, audio or melody (the server has its features). The child's sounds and
 // placement are never changed by any step; a background is a separate layer the child may switch back from.
 import {MOODS} from './arrangement.ts';
 import type {MoodId} from './arrangement';
@@ -41,6 +42,12 @@ export type BackgroundBrief={
  textbook:TextbookFeatures|null;
  /** Which shape of the song's feature to play (换几种样子); null without a textbook song. */
  variation:TextbookVariation|null;
+ /**
+  * Teaching music a teacher uploaded (POST /api/v1/teaching-music): the server analyses it and borrows its rhythm and feel,
+  * never its melody. Only the upload's id; null without teaching music. A brief has a textbook song or teaching music,
+  * never both (one inspiration at a time).
+  */
+ teachingMusic:{musicId:string}|null;
  /** Instrument ids the child chose (who should play the notes); [] = the original soft voice. */
  instruments:string[];
  rules:RuleVersions;
@@ -70,6 +77,8 @@ export function isBackgroundBrief(value:unknown):value is BackgroundBrief{
  if(!arrangement||!DENSITIES.includes(arrangement.density as Density)||!LEVELS.includes(arrangement.repetition as Level)||!LEVELS.includes(arrangement.register as Level))return false;
  if(!Array.isArray(raw.instruments)||!raw.instruments.every(nonEmpty))return false;
  if(raw.variation!==null&&!TEXTBOOK_VARIATIONS.includes(raw.variation as TextbookVariation))return false;
+ const teaching=raw.teachingMusic as Record<string,unknown>|null|undefined;
+ if(teaching!==null&&(!teaching||typeof teaching!=='object'||!nonEmpty(teaching.musicId)||Object.keys(teaching).length!==1||raw.textbook!==null))return false;
  const rules=raw.rules as Record<string,unknown>|null;
  return !!rules&&['analysis','shaping','background','mix'].every(key=>nonEmpty(rules[key]));
 }

@@ -28,12 +28,12 @@ export const calmLullaby:BackgroundBrief={
  version:'background-request-v1',workId:'work:fixture-1',seconds:30,sounding:[{start:1,end:3},{start:2,end:5},{start:20,end:24}],
  tempo:66,metre:3,mode:'major',mood:'calm',arrangement:{density:'sparse',repetition:'medium',register:'high'},
  textbook:{id:'tb:mock:lullaby',tempoBpm:66,meter:3,rhythmCell:[2,1],onsetDensity:'sparse',pitchRange:{low:57,high:69},brightness:'dark',mode:'major',repetition:'medium',mood:'calm'},
- variation:'lower',instruments:['marimba'],rules,
+ variation:'lower',teachingMusic:null,instruments:['marimba'],rules,
 };
 export const busyNoSong:BackgroundBrief={
  version:'background-request-v1',workId:'work:fixture-2',seconds:20,sounding:Array.from({length:10},(_,i)=>({start:i*2,end:i*2+1.5})),
  tempo:100,metre:4,mode:'major',mood:'happy',arrangement:{density:'busy',repetition:'high',register:'low'},
- textbook:null,variation:null,instruments:[],rules,
+ textbook:null,variation:null,teachingMusic:null,instruments:[],rules,
 };
 export const quietNoMood:BackgroundBrief={...busyNoSong,workId:'work:fixture-3',seconds:45,sounding:[{start:40,end:44}],mood:null,tempo:76,arrangement:{density:'sparse',repetition:'low',register:'medium'}};
 export const BACKGROUND_BRIEFS=[calmLullaby,busyNoSong,quietNoMood];

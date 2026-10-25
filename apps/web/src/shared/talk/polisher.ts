@@ -3,9 +3,11 @@
 // checks the server runs (@wanwu-v2/prompts/accept). No model is connected yet: the offline polisher says so and sends
 // nothing.
 //
-// Intended server endpoints (not implemented; the key and the prompts stay on the server, which also logs the checks):
-//   POST /api/v1/talk/work      ← WorkTalkBrief     → WorkTalkReply + {promptVersion}
-//   POST /api/v1/talk/textbook  ← TextbookTalkBrief → TextbookTalk  + {promptVersion}
+// Intended server endpoints (protocol v0.4; not implemented; the key and the prompts stay on the server, which also
+// logs the checks; open to visitors, limited per IP and device — over the limit is reason 'quota'):
+//   POST /api/v1/talk/work      ← WorkTalkBrief     → {...WorkTalkReply, model, promptVersion}
+//   POST /api/v1/talk/textbook  ← TextbookTalkBrief → {...TextbookTalk, model, promptVersion}
+// `model` and `promptVersion` sit beside the reply's own fields, as in BackgroundResult.
 // Only anonymous briefs are sent: facts with numbered sounds (「声音1」), never the names a child typed, recordings,
 // people or places.
 import type {TextbookTalkBrief,WorkTalkBrief} from '@wanwu-v2/contracts/talk';

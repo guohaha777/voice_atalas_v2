@@ -212,6 +212,21 @@ test('the AI background request is an anonymous brief with the textbook song\'s 
  assert.deepEqual(brief.rules,RULE_VERSIONS);
  const text=JSON.stringify(brief);
  for(const secret of ['蛙鸣','滴水','recording:','摇篮曲','像摇篮'])assert.ok(!text.includes(secret),`no ${secret} in the brief`);
+ assert.equal(brief.teachingMusic,null,'a textbook song is not teaching music');
+});
+
+test('teaching music rides in the same AI background brief, by its upload id only',()=>{
+ const piece=work({events:[ev('a',0,0,4)]});
+ const brief=backgroundBrief(piece,{kind:'teaching-music',musicId:'music:42',name:'三年级二班春游录音',durationMs:90_000},exampleTracks,[])!;
+ assert.ok(isBackgroundBrief(brief));
+ assert.deepEqual([brief.teachingMusic,brief.textbook,brief.variation],[{musicId:'music:42'},null,null]);
+ assert.ok(!JSON.stringify(brief).includes('春游'),'the file name stays on the device');
+ const bad=(change:Record<string,unknown>)=>isBackgroundBrief({...brief,...change});
+ assert.equal(bad({teachingMusic:{musicId:''}}),false,'empty id');
+ assert.equal(bad({teachingMusic:{musicId:'music:42',name:'春游'}}),false,'nothing beside the id');
+ assert.equal(bad({teachingMusic:undefined}),false,'the field must be there');
+ const withSong=backgroundBrief(piece,{kind:'textbook',entryId:'tb:mock:lullaby'},exampleTracks,[])!;
+ assert.equal(isBackgroundBrief({...withSong,teachingMusic:{musicId:'music:42'}}),false,'one inspiration at a time');
 });
 
 test('the AI background chain: closed sends nothing; steps are tried in order, each with a timeout; bad results are refused',async()=>{

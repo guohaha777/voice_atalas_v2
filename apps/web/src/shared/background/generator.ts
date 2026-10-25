@@ -2,7 +2,9 @@
 // the server for an AI background and, if one comes back in time, the child may switch to it — never automatically.
 // No AI is connected yet: the offline generator says so plainly (`not-open`) and sends nothing.
 //
-// Intended server endpoints (not implemented; keys stay on the server, which owns quotas and moderation):
+// Intended server endpoints (protocol v0.4; not implemented; keys stay on the server, which owns quotas and moderation;
+// open to visitors, limited per IP and device — over the limit is reason 'quota'). The one AI background entry, with or
+// without teaching music (BackgroundBrief.teachingMusic):
 //   POST /api/v1/backgrounds            ← BackgroundBrief (+ step) → {jobId}
 //   GET  /api/v1/backgrounds/{jobId}    → BackgroundResult (validated with parseBackgroundResult)
 //   audio-ai: Fun-Music from a text description of the brief (no vocals, no lead melody); the mp3 is copied to our own

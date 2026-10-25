@@ -98,5 +98,5 @@ export function composeReducer(state:ComposeState,action:ComposeAction):ComposeS
 export function shelfEntry(state:ComposeState,title:string,now:Date,rendering:Rendering):SavedWork|null{
  const clean=cleanWorkTitle(title);
  if(!clean||!state.arrangement)return null;
- return {version:WORK_CONTRACT_VERSION,id:state.arrangement.id,title:clean,arrangement:state.arrangement,settings:state.settings,rendering,visibility:'private',savedAt:now.toISOString()};
+ return {version:WORK_CONTRACT_VERSION,id:state.arrangement.id,title:clean,arrangement:state.arrangement,settings:state.settings,rendering,visibility:'private',share:null,savedAt:now.toISOString()};
 }

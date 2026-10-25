@@ -18,7 +18,7 @@ export const describeExcerpt=(source:SoundSource,range:{startMs:number;endMs:num
 });
 
 /** New local sources start from the last values used on this device, so a class outing is filled in once. */
-export const describeLocal=(kind:Exclude<SoundSourceKind,'example'>,label:string,buffer:AudioBuffer,mimeType:string):SoundSource=>({
+export const describeLocal=(kind:Extract<SoundSourceKind,`local-${string}`>,label:string,buffer:AudioBuffer,mimeType:string):SoundSource=>({
  id:newId(kind==='local-file'?'file':'recording'),kind,label,durationMs:Math.round(buffer.duration*1000),mimeType,
  provenance:{recordedBy:sessionArchive.recent('recordedBy')[0]??null,recordedOn:today(),place:sessionArchive.recent('place')[0]??null,group:sessionArchive.recent('group')[0]??null,provenanceUrl:null},
 });

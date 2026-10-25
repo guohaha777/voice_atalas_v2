@@ -23,7 +23,7 @@ export const birthCopy={
  cleared:(dimension:SoundDimension,value:string)=>`「${(dimensionCopy[dimension].options as Record<string,string>)[value]??value}」取消啦，${dimensionCopy[dimension].label}回到原来的样子。`,
  greet:'声音标记，点一点和它打招呼',rename:'改名字',original:'听原声',current:'听现在的',stopPlaying:'停',
  keepOriginal:'原声保留，随时可以比较。',
- sourceLabel:{example:'示例声音','local-recording':'本机录音 · 未上传','local-file':'本机文件 · 未上传'} satisfies Record<SoundSourceKind,string>,
+ sourceLabel:{example:'示例声音','local-recording':'本机录音 · 未上传','local-file':'本机文件 · 未上传',uploaded:'已上传'} satisfies Record<SoundSourceKind,string>,
  // Editor
  tapToClear:'再点一下取消',
  optionHint:'点一点，听听声音怎么变；再点一下取消。',

@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useReducer,useRef,useState,useSyncExternalStore} from 'react';
-import {SOUND_SOURCE_MAX_MS,cleanSourceText,missingProvenance,normalizeSoundName} from '@wanwu-v2/contracts/sound';
+import {SOUND_SOURCE_MAX_MS,SOUND_SOURCE_SLACK_MS,cleanSourceText,missingProvenance,normalizeSoundName} from '@wanwu-v2/contracts/sound';
 import type {SoundDimension,SoundSource,SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {audioSupported} from '../../../shared/audio/audioContext';
 import {unchangedBy} from '@wanwu-v2/sound-rules/shaping';
@@ -76,7 +76,7 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
   trimming.start(buffer,label,mimeType,from);
   dispatch({type:'reading',reading:false});dispatch({type:'notice',notice:null});dispatch({type:'dialog',dialog:'trim'});
  };
- const tooLong=(buffer:AudioBuffer)=>buffer.duration*1000>SOUND_SOURCE_MAX_MS+500;
+ const tooLong=(buffer:AudioBuffer)=>buffer.duration*1000>SOUND_SOURCE_MAX_MS+SOUND_SOURCE_SLACK_MS;
  const library=useLibraryItems(player,playing,notify,{get:bufferOf,set:(id,buffer)=>buffers.current.set(id,buffer)},
   (source,buffer)=>tooLong(buffer)?openTrim(buffer,source.label,source.mimeType,source):useSource(source,buffer));
 

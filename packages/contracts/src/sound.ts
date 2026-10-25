@@ -3,8 +3,12 @@
 
 export const SOUND_CONTRACT_VERSION='sound-v1' as const;
 
-/** Where the audio came from. `local-*` means it only exists on this device and has not been uploaded. */
-export type SoundSourceKind='example'|'local-recording'|'local-file';
+/**
+ * Where the audio came from. `local-*` means it only exists on this device and has not been uploaded; `uploaded` means
+ * the original is stored on the server (PUT /api/v1/sources/{id}, then …/complete) and can no longer be overwritten.
+ */
+export type SoundSourceKind='example'|'local-recording'|'local-file'|'uploaded';
+export const SOUND_SOURCE_KINDS:readonly SoundSourceKind[]=['example','local-recording','local-file','uploaded'];
 /**
  * Who captured the sound, when, where and in which group — so every sound in a work can be traced back.
  * Children are recorded by nickname and places stay approximate (no real names, faces or exact locations).
@@ -101,6 +105,8 @@ export const SOUND_NAME_MAX=12;
 export const MAKER_NAME_MAX=6;
 /** Longest source a child can record or upload. The whole recording comes in; 万物声场 lets the child pick the part to use. */
 export const SOUND_SOURCE_MAX_MS=45_000;
+/** A recording stopped at the limit can run a little past it; up to this much over still counts as within it. */
+export const SOUND_SOURCE_SLACK_MS=500;
 
 /** Only known dimensions, each with a valid value; any subset (including none) is allowed. */
 export function isChosenShape(shape:unknown):shape is ChosenShape{
@@ -183,4 +189,30 @@ export function isSoundAnalysis(value:unknown):value is SoundAnalysis{
   &&Array.isArray(a.units)&&a.units.every(unit=>isSpan(unit)&&finite((unit as unknown as {peakDb:unknown}).peakDb))
   &&SOUND_KINDS.includes(a.kind as SoundKind)&&finite(a.unitMs)&&SOUND_CHOICES.duration.includes(a.lengthBand as DurationChoice)
   &&finite(a.loudnessDb)&&finite(a.peakDb)&&finite(a.brightnessHz)&&SOUND_CHOICES.pitch.includes(a.band as PitchChoice);
+}
+
+const text=(value:unknown)=>value===null||typeof value==='string';
+/**
+ * Validates a received source (a server list, a stored work) before the page trusts it. A source a child can record or
+ * upload lasts at most SOUND_SOURCE_MAX_MS (+ the slack); bundled examples are whole recordings and may be longer.
+ */
+export function isSoundSource(value:unknown):value is SoundSource{
+ if(!value||typeof value!=='object')return false;
+ const s=value as Record<string,unknown>,p=s.provenance as Record<string,unknown>|null;
+ if(typeof s.id!=='string'||!s.id||!SOUND_SOURCE_KINDS.includes(s.kind as SoundSourceKind)||typeof s.label!=='string')return false;
+ if(!finite(s.durationMs)||s.durationMs<=0||(s.kind!=='example'&&s.durationMs>SOUND_SOURCE_MAX_MS+SOUND_SOURCE_SLACK_MS))return false;
+ if(typeof s.mimeType!=='string'||!s.mimeType.startsWith('audio/'))return false;
+ return !!p&&typeof p==='object'&&['recordedBy','recordedOn','place','group','provenanceUrl'].every(key=>text(p[key]));
+}
+
+/**
+ * One entry of the sound library (GET /api/v1/sources): the source with its provenance, where its playable file is (a
+ * server-made copy; the original stays untouched) and its 声音体检. `url` is https, or a path on this site.
+ */
+export type SourceEntry={source:SoundSource;url:string;analysis:SoundAnalysis};
+const playable=(url:unknown)=>typeof url==='string'&&(/^https:\/\//.test(url)||/^\/(?!\/)/.test(url));
+export function parseSourceEntry(value:unknown):SourceEntry|null{
+ if(!value||typeof value!=='object')return null;
+ const raw=value as Record<string,unknown>;
+ return isSoundSource(raw.source)&&playable(raw.url)&&isSoundAnalysis(raw.analysis)?raw as SourceEntry:null;
 }

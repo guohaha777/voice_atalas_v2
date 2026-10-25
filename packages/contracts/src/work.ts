@@ -52,6 +52,14 @@ export const VISIBILITIES:readonly Visibility[]=['private','class','school','reg
  */
 export type Rendering={background:BackgroundSource;prompt:string|null;rules:RuleVersions};
 
+/**
+ * Where sharing a work stands (POST /api/v1/works/{id}/share). Any visibility wider than `private` is reviewed first;
+ * `url` is the share link, present only once approved. The server keeps this: a save never changes it.
+ */
+export type ShareStatus='pending-review'|'approved'|'rejected';
+export const SHARE_STATUSES:readonly ShareStatus[]=['pending-review','approved','rejected'];
+export type WorkShare={status:ShareStatus;url:string|null};
+
 export const WORK_TITLE_MAX=16;
 export type SavedWork={
  version:typeof WORK_CONTRACT_VERSION;
@@ -62,6 +70,8 @@ export type SavedWork={
  settings:ComposeSettings;
  rendering:Rendering;
  visibility:Visibility;
+ /** Null until the work is shared. */
+ share:WorkShare|null;
  savedAt:string;
 };
 
@@ -95,6 +105,13 @@ export function isRendering(value:unknown):value is Rendering{
   &&['analysis','shaping','background','mix'].every(key=>nonEmpty(rules[key]));
 }
 
+export function isWorkShare(value:unknown):value is WorkShare{
+ if(!value||typeof value!=='object')return false;
+ const raw=value as Record<string,unknown>;
+ if(!SHARE_STATUSES.includes(raw.status as ShareStatus))return false;
+ return raw.status==='approved'?typeof raw.url==='string'&&/^https:\/\//.test(raw.url):raw.url===null;
+}
+
 /** Validates a saved work (future API or storage) before the UI trusts it. */
 export function parseSavedWork(value:unknown):SavedWork|null{
  if(!value||typeof value!=='object')return null;
@@ -102,6 +119,7 @@ export function parseSavedWork(value:unknown):SavedWork|null{
  if(raw.version!==WORK_CONTRACT_VERSION||typeof raw.id!=='string'||!raw.id||typeof raw.savedAt!=='string')return null;
  if(typeof raw.title!=='string'||cleanWorkTitle(raw.title)!==raw.title)return null;
  if(!VISIBILITIES.includes(raw.visibility as Visibility))return null;
+ if(raw.share!==null&&!isWorkShare(raw.share))return null;
  const arrangement=parseArrangement(raw.arrangement);
  if(!arrangement||arrangement.id!==raw.id||!parseComposeSettings(raw.settings)||!isRendering(raw.rendering))return null;
  return raw as SavedWork;

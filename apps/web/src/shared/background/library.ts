@@ -6,8 +6,8 @@
 //
 // Intended server endpoints (not implemented):
 //   GET  /api/v1/instruments                           → Instrument[] (licensed, reviewed; more open over time)
-//   POST /api/v1/works/{workId}/background             ← {plan input, instruments} → job → {backgroundUrl, source}
-//        source: 'audio-ai' | 'notes-ai'; on failure or timeout the page keeps the local background.
+// AI backgrounds have one entry, POST /api/v1/backgrounds + GET /api/v1/backgrounds/{jobId} (shared/background/generator.ts):
+// the chosen instruments ride in the BackgroundBrief; on failure or timeout the page keeps the local background.
 import type {Instrument} from './instruments.ts';
 
 /** `example` = made in the browser for this demo, not a licensed library. `coming`: names shown as not open yet. */

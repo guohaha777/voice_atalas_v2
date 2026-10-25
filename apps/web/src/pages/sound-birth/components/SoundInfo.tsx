@@ -22,7 +22,7 @@ export function SoundInfo({birth}:{birth:Birth}){
  // Runs when a new guidance notice appears, not on every keystroke.
  },[infoNotice]);
  return <div ref={section} className={styles.info} role="group" aria-labelledby="card-info-title">
-  <h3 id="card-info-title" className={styles.infoTitle}>{copy.title}{source&&missing.length>0&&<span className={styles.infoBadge}>待补 {missing.length}</span>}{source&&source.kind!=='example'&&<small className={styles.infoNote}>{copy.sessionOnly}</small>}</h3>
+  <h3 id="card-info-title" className={styles.infoTitle}>{copy.title}{source&&missing.length>0&&<span className={styles.infoBadge}>待补 {missing.length}</span>}{source?.kind.startsWith('local-')&&<small className={styles.infoNote}>{copy.sessionOnly}</small>}</h3>
   {source&&source.kind!=='example'&&<div className={styles.infoForm}>
    <Field birth={birth} field="label" label={copy.label} hint={copy.labelHint} value={source.label} missing={missing.includes('label')}/>
    <div className={styles.groupField}>
