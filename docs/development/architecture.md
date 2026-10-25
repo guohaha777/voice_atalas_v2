@@ -49,6 +49,7 @@
 - 路由 `/create`，代码单独分包，弹窗打开时预取。`pages/sound-birth/` 分为 `components/`（声音条、我的声卡、声卡信息、五行选择、录音 / 声音库 / 纸卡对话框）、`model/`（纯 reducer `soundBirthState.ts`；编排 hook `useSoundBirth.ts`，拆出 `useRecording`（录音）、`useTrimUpload`（长文件截取）、`useLibraryItems`（声音库加载与试听）、`useShapedPreview`（塑形渲染与对比试听）和 `localSource.ts`）、`config/`（文案、示例声音条目、向导动物、提示文案）、`services/`（声音库分组、向导提示端口）。五项文案、本机来源档案、背景层、弹窗面板和顶栏入口都在 shared，与万物声场共用。
 - 数据走 `@wanwu-v2/contracts/sound`：来源与溯源信息、五项、交给声场的 `SoundUnitDraft`。原声只读：先做声音体检、再按卡片塑形，规则在 `packages/sound-rules`（2026-10-24 起 `shaping-v3`），浏览器只负责离线渲染（`shared/audio/renderShaped.ts`、`grains.ts`）和按缓冲区缓存体检结果（`shared/audio/soundAnalysis.ts`）。本机来源档案和示例声音清单在 `shared/creation/`，与万物声场共用。
 - 向导提示走 `services/soundHints.ts` 的 `SoundHintProvider` 接口，当前是本地预设文案；接模型时实现同一接口即可。
+- 一次做多个声音（2026-10-24）：“做好了”旁边的“再做一个”把当前声音放进作品（和“做好了”同样的检查），页面清空、换下一个编号接着做；做完点“做好了”一起进声场，空页面点“做好了”也会带着已放进的声音进声场。交接逻辑在 `model/useFinish.ts`，`App` 的 `finishSound` 负责放进作品；作品最多 12 个声音，满了会提示。手机上两个按钮并排，360px 以下上下排。
 - 首页场景的素材清单放在 `shared/scene/`（`homeScene.ts` + 生成的 JSON），首页、弹窗和声音诞生页都通过它取同一批已缓存的文件。
 - 图标：`shared/ui/PaperIcon.tsx` 里的 `PaperIcon`（彩色纸片图标，按色卡上色）和 `Glyph`（实心小图标，跟随文字颜色）；心情脸是 `MoodFace.tsx`。作品书架保留原版的 `KidIcon` 与 `shared/scene/WorkBackdrop`（首页灌木淡背景）。
 - 屏幕档位只有一份：`styles/breakpoints.ts`（`phone / tiny / one-column / narrow / narrow-compose / short / shorter / tablet-short / header-compact / sheet-narrow / reduced-motion`）。CSS 写 `@media(--short)`，构建时由 `vite.config.ts` 的小插件展开；代码里用 `media.phone` 等。`scripts/check-styles.mjs`（随 `npm run build` 运行）拒绝写死像素的媒体查询、未知档位，以及超过 220 行的源文件。组件内部按容器宽度的 `@container` 仍写在组件里。

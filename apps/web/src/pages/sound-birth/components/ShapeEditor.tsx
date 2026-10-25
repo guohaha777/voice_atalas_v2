@@ -71,6 +71,8 @@ export function ShapeEditor({birth,onBack,active,onActive,ref}:{birth:Birth;onBa
   </div>
   <div className={styles.actions}>
    <button type="button" className={`${ui.pill} ${ui.back} ${styles.backButton}`} onClick={onBack}><Glyph name="back"/>{birthCopy.backEntry}</button>
+   {/* 再做一个: keep this sound in the work and start the next one here; 做好了 then takes them all to the field. */}
+   <button type="button" className={`${ui.pill} ${ui.outline} ${styles.another}`} onClick={birth.another}><Glyph name="plus"/>{birthCopy.another}</button>
    <button type="button" className={`${ui.pill} ${ui.forward} ${styles.finish}`} data-ready={ready&&!birth.blocked||undefined} aria-disabled={birth.blocked||undefined} onClick={birth.finish}>
     {birth.blocked?birthCopy.finishUnavailable:birthCopy.finish}<Glyph name="arrow"/>
    </button>

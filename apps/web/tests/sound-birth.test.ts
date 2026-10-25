@@ -220,3 +220,19 @@ test('返回声音诞生 goes on editing the last sound: same id and number; a n
  assert.equal(next.markerIndex,1);assert.equal(next.source,recording);
  session.reset();assert.equal(session.lastMade(),null,'再来一首 starts with no sound to edit');
 });
+
+test('再做一个: each sound joins the work with its own number, and the page starts empty for the next one',()=>{
+ const session=new WorkSession(),now=new Date('2026-10-24T08:00:00.000Z');
+ assert.equal(session.unitCount(),0);
+ let state=chooseAll(soundBirthReducer(initialSoundBirth(session.nextMarkerIndex()),ready(example)));
+ state=soundBirthReducer(state,{type:'rename',name:'小鸟'});
+ assert.equal(session.addUnit(toSoundUnitDraft(state,'unit:a',now)!,example).status,'added');
+ const notice={tone:'done' as const,area:'editor' as const,text:'「小鸟」放进作品了'};
+ const next=soundBirthReducer({...state,dialog:'library',cardPhoto:'blob:card'},{type:'next',markerIndex:session.nextMarkerIndex(),notice});
+ assert.deepEqual(next,{...initialSoundBirth(1),notice},'nothing of the last sound carries over; the next number');
+ const second=soundBirthReducer(soundBirthReducer(next,ready(example)),{type:'choose',dimension:'pitch',value:'low'});
+ assert.equal(session.addUnit(toSoundUnitDraft(second,'unit:b',now)!,example).status,'added');
+ assert.equal(session.unitCount(),2);
+ assert.deepEqual(session.current()!.units.map(unit=>[unit.id,unit.markerIndex]),[['unit:a',0],['unit:b',1]]);
+ assert.equal(session.lastMade()!.unit.id,'unit:b','返回声音诞生 goes on with the last one made');
+});

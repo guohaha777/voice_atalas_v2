@@ -51,6 +51,8 @@ export class WorkSession{
   const unit=this.own()?.units.find(item=>item.id===this.lastMadeId),source=unit&&this.sources.get(unit.sourceId);
   return unit&&source?{unit,source}:null;
  }
+ /** How many sounds the child's own work holds (0 for none, or for an untouched example). */
+ unitCount(){return this.own()?.units.length??0;}
  /** Whether the current work already holds this unit (声音诞生 then updates it instead of adding a new one). */
  hasUnit(id:string){return !!this.own()?.units.some(unit=>unit.id===id);}
 

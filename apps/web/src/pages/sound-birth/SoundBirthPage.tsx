@@ -2,8 +2,8 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {flowSteps} from '../../app/navigation';
 import {FlowHeader} from '../../shared/ui/FlowHeader';
 import {WorkHeaderActions} from '../../shared/ui/WorkHeaderActions';
-import type {SoundDimension,SoundSource,SoundUnitDraft} from '@wanwu-v2/contracts/sound';
-import type {EditingSound,FinishResult} from './model/useSoundBirth';
+import type {SoundDimension} from '@wanwu-v2/contracts/sound';
+import type {EditingSound,FinishResult,FinishThen,FinishedSound} from './model/useSoundBirth';
 import {birthCopy} from './config/copy';
 import {remainingDimensions} from './model/soundBirthState';
 import {useSoundBirth} from './model/useSoundBirth';
@@ -19,7 +19,7 @@ import styles from './SoundBirthPage.module.css';
 /** 声音诞生 (采集与转译 merged): bring in a sound with its provenance, set the five choices, compare with the original. */
 export function SoundBirthPage({markerIndex,editing=null,onNavigate,onFinish,entryMotion=true}:{entryMotion?:boolean;markerIndex:number;
  /** The sound to go on editing (返回声音诞生); null starts a new sound. */
- editing?:EditingSound|null;onNavigate:(path:string)=>void;onFinish:(draft:SoundUnitDraft,source:SoundSource)=>FinishResult}){
+ editing?:EditingSound|null;onNavigate:(path:string)=>void;onFinish:(sound:FinishedSound,then:FinishThen)=>FinishResult}){
  // Keep the entry mode for this mount; finishing the crossfade must not restart the page entrance.
  const [animateEntry]=useState(entryMotion);
  // Hand-off to 万物声场 goes through the app, which adds the unit to the current work and opens the field.

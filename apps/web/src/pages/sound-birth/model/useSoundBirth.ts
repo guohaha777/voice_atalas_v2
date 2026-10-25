@@ -7,7 +7,6 @@ import {SequencePlayer} from '../../../shared/audio/SequencePlayer';
 import {analysisOf} from '../../../shared/audio/soundAnalysis';
 import {decodeAudio,loadAudio} from '../../../shared/audio/loadAudio';
 import {EXAMPLE_TIMEOUT_MS,exampleSourceUrl} from '../../../shared/creation/exampleSounds';
-import {newId} from '../../../shared/creation/ids';
 import {FILE_MAX_BYTES,birthCopy} from '../config/copy';
 import {sessionArchive} from '../../../shared/creation/sourceArchive';
 import {exampleLibraryItem,libraryGroups} from '../services/soundLibrary';
@@ -17,14 +16,16 @@ import {services} from '../../../app/services';
 import type {SoundHint,SoundHintProvider} from '../services/soundHints';
 import {baseName,describeExcerpt,describeLocal} from './localSource';
 import type {Notify} from './localSource';
-import {editingSoundBirth,finishCheck,initialSoundBirth,soundBirthReducer,toSoundUnitDraft} from './soundBirthState';
+import {editingSoundBirth,initialSoundBirth,soundBirthReducer} from './soundBirthState';
+import {useFinish} from './useFinish';
+import type {EditTarget,FinishResult,FinishThen,FinishedSound} from './useFinish';
 import {TRIM_FILE_MAX_MS} from './trimEditing';
 import {useLibraryItems} from './useLibraryItems';
 import {useRecording} from './useRecording';
 import {useShapedPreview} from './useShapedPreview';
 import {useTrimUpload} from './useTrimUpload';
 
-export type FinishResult={status:'unavailable'}|{status:'opened'};
+export type {FinishResult,FinishThen,FinishedSound} from './useFinish';
 export type {CompareTarget} from './useShapedPreview';
 export type {RecordPhase} from './useRecording';
 export type ProvenanceField='label'|'recordedBy'|'recordedOn'|'place'|'group';
@@ -33,11 +34,11 @@ export type EditingSound={unit:SoundUnitDraft;source:SoundSource};
 
 /** 声音诞生: bring a sound in (library, file, recording), shape it with the five choices, check its card, finish.
  *  Recording, trimming, library loading and the shaped preview live in their own hooks; this one ties them together. */
-export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,source:SoundSource)=>FinishResult,hints:SoundHintProvider=services.soundHints,editing:EditingSound|null=null,
+export function useSoundBirth(markerIndex:number,onFinish:(sound:FinishedSound,then:FinishThen)=>FinishResult,hints:SoundHintProvider=services.soundHints,editing:EditingSound|null=null,
  sounds:SoundLibraryService=services.soundLibrary){
  const [state,dispatch]=useReducer(soundBirthReducer,null,()=>editing?editingSoundBirth(editing.unit,editing.source):initialSoundBirth(markerIndex));
  /** While the child keeps the same source, 做好了 updates the sound being edited; a new source makes a new sound. */
- const editTarget=useRef(editing&&{unitId:editing.unit.id,sourceId:editing.source.id,markerIndex:editing.unit.markerIndex});
+ const editTarget=useRef<EditTarget>(editing&&{unitId:editing.unit.id,sourceId:editing.source.id,markerIndex:editing.unit.markerIndex});
  const local=useSyncExternalStore(sessionArchive.subscribe,sessionArchive.list);
  // The library's examples come through the shared port (the same list 万物声场 offers).
  const [examples,setExamples]=useState<readonly LibraryItem[]>([]);
@@ -58,8 +59,6 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
  const sourceBuffer=state.source?bufferOf(state.source.id):null;
 
  const preview=useShapedPreview(player,playing,notify,()=>{const source=latest.current.source;return {source,buffer:source&&bufferOf(source.id)||null};},sourceBuffer??null,state.shape);
- /** The source whose silence the child was already told about at 做好了 (a second press goes on). */
- const silentWarned=useRef<string|null>(null);
  const useSource=(source:SoundSource,buffer:AudioBuffer)=>{
   buffers.current.set(source.id,buffer);player.stop();preview.reset();setBlocked(false);
   const target=editTarget.current;
@@ -171,23 +170,11 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
   photo.current=file?URL.createObjectURL(file):null;
   dispatch({type:'card-photo',url:photo.current});
  };
- /** One button that either finishes or walks to the first thing still missing. */
- const finish=()=>{
-  const check=finishCheck(state);
-  switch(check.kind){
-   case 'no-source':return notify('bar',birthCopy.needSound,'info');
-   case 'missing-provenance':return notify('info',birthCopy.needProvenance,'info');
-   case 'ready':{
-    // A silent sound may still be used, but only after the child has heard the warning once.
-    if(analysisNow()?.silent&&silentWarned.current!==state.source?.id){silentWarned.current=state.source?.id??null;return notify('bar',birthCopy.silentFinish,'info');}
-    if(!state.cardConfirmed)dispatch({type:'card',confirmed:true});
-    const target=editTarget.current,id=target&&state.source?.id===target.sourceId?target.unitId:newId('unit');
-    const draft=toSoundUnitDraft(state,id,new Date(),analysisNow()??undefined);if(!draft||!state.source)return;
-    player.stop();
-    if(onFinish(draft,state.source).status==='unavailable'){setBlocked(true);notify('editor',birthCopy.worldUnavailable,'info');}
-   }
-  }
- };
+ const finish=useFinish({state,dispatch,notify,analysis:analysisNow,editTarget,onFinish,stop:()=>player.stop(),block:()=>setBlocked(true),
+  clearPage:()=>{
+   hintRequest.current?.abort();setHint(null);setLastChosen(null);setBlocked(false);preview.reset();
+   if(photo.current){URL.revokeObjectURL(photo.current);photo.current=null;}
+  }});
 
  const {shown,currentBuffer}=preview,trim=trimming.trim;
  const displayBuffer=shown==='current'&&currentBuffer?currentBuffer:sourceBuffer;
@@ -201,7 +188,8 @@ export function useSoundBirth(markerIndex:number,onFinish:(draft:SoundUnitDraft,
   suggestions:{recordedBy:sessionArchive.recent('recordedBy'),place:sessionArchive.recent('place'),group:sessionArchive.recent('group')},
   previewItem:library.preview,pickItem:library.pick,chooseFile,openRecord,startRecording:recording.start,stopRecording:recording.stop,
   listenTake:recording.listen,useTake:recording.use,closeDialog,
-  playCompare:preview.playCompare,playShown:preview.playShown,choose,clear,updateSource,setCardPhoto,finish,
+  playCompare:preview.playCompare,playShown:preview.playShown,choose,clear,updateSource,setCardPhoto,
+  finish:()=>finish('world'),another:()=>finish('another'),
   /** A new name: the sound marker says it back. */
   rename:(name:string)=>{
    const before=latest.current.name;dispatch({type:'rename',name});

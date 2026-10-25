@@ -3,8 +3,9 @@ import type {ChosenShape,SoundAnalysis,SoundDimension,SoundShape,SoundSource,Sou
 
 /** `trim`: an upload longer than the source limit, waiting for the child to pick the part to keep. */
 export type CaptureDialog='record'|'library'|'trim'|null;
-/** `area` puts a message next to what it is about: the current-sound bar, the five rows or the card info. */
-export type Notice={tone:'info'|'error';area:'bar'|'editor'|'info';text:string}|null;
+/** `area` puts a message next to what it is about: the current-sound bar, the five rows or the card info. `done` reports
+ *  something that went through (再做一个), so it is never read as "pick a sound first". */
+export type Notice={tone:'info'|'error'|'done';area:'bar'|'editor'|'info';text:string}|null;
 export type SoundBirthState={
  source:SoundSource|null;
  /** The sound card's own name (child's words); the source keeps its provenance label separately. */
@@ -34,7 +35,9 @@ export type SoundBirthAction=
  /** Tapping the chosen option again takes the choice back (that dimension returns to the original). */
  |{type:'clear';dimension:SoundDimension}
  |{type:'card-photo';url:string|null}
- |{type:'notice';notice:Notice};
+ |{type:'notice';notice:Notice}
+ /** 再做一个: the sound just made went into the work; the page starts empty for the next one, with its own number. */
+ |{type:'next';markerIndex:number;notice:Notice};
 
 /** Going on editing a sound already in the work: its source, name, maker, five choices and number; the card stays checked. */
 export function editingSoundBirth(unit:SoundUnitDraft,source:SoundSource):SoundBirthState{
@@ -81,6 +84,7 @@ export function soundBirthReducer(state:SoundBirthState,action:SoundBirthAction)
   }
   case 'card-photo':return {...state,cardPhoto:action.url};
   case 'notice':return {...state,notice:action.notice};
+  case 'next':return {...initialSoundBirth(action.markerIndex),notice:action.notice};
  }
 }
 

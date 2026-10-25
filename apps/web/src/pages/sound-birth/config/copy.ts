@@ -28,11 +28,15 @@ export const birthCopy={
  tapToClear:'再点一下取消',
  optionHint:'点一点，听听声音怎么变；再点一下取消。',
  backEntry:'返回入口',finish:'做好了，去万物声场',finishUnavailable:'暂未开放',
+ // 再做一个: this sound goes into the work and the page empties for the next one; 做好了 then takes them all to the field.
+ another:'再做一个',
+ kept:(name:string,count:number)=>`「${name}」放进作品了（共 ${count} 个声音），接着选下一个声音吧。`,
+ workFull:'作品里的声音已经放满了，先去万物声场摆一摆吧。',
  needSound:'先在上方选一个声音。',
  // 声音体检 found nothing to hear: say so plainly, the child may re-record (the recording is kept as it is).
  silent:'这段好像没录到声音，可以点「录音」重录，或换一段。',
- // 返回声音诞生: going on with the last sound; a new recording, upload or library sound makes a new one.
- editing:(name:string)=>`接着改「${name}」吧，改好点「做好了」。想做新声音，就换一个来源。`,
+ // 返回声音诞生: going on with the last sound; 再做一个, or a new recording, upload or library sound, makes a new one.
+ editing:(name:string)=>`接着改「${name}」吧，改好点「做好了」。想做新声音，点「再做一个」。`,
  editMissing:'这个声音的录音没找到，可以重新录音或上传。',
  silentFinish:'这段好像没录到声音。确定就用它，再点一次「做好了」。',
  needProvenance:'补齐下面的声音信息，这个声音才能溯源。',

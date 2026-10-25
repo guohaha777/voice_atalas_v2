@@ -1,6 +1,6 @@
 import {lazy,Suspense,useEffect,useState} from 'react';
-import type {SoundSource,SoundUnitDraft} from '@wanwu-v2/contracts/sound';
 import {HomePage} from '../pages/home/HomePage';
+import type {FinishResult,FinishThen,FinishedSound} from '../pages/sound-birth/model/useSoundBirth';
 import {HomeBirthDestination,HomeBirthTransition} from './transitions/home-birth/HomeBirthTransition';
 import {useHomeBirthTransition} from './transitions/home-birth/useHomeBirthTransition';
 import {workSession} from '../shared/creation/workSession';
@@ -58,12 +58,17 @@ export function App(){
   if(route.page==='compose')return prefetchWhenIdle(loadWorks,nextPagePrefetchDelayMs);
  },[route.page]);
  // 声音诞生 → 万物声场: the finished unit joins the current work (this visit only), or updates the sound it was made
- // from, then the field opens.
- const finishSound=(draft:SoundUnitDraft,source:SoundSource)=>{
-  if(workSession.hasUnit(draft.id))workSession.updateUnit(draft,source);
-  else if(workSession.addUnit(draft,source).status==='full')return {status:'unavailable'} as const;
+ // from, then the field opens. 再做一个 keeps it the same way and stays on 声音诞生 for the next sound; 做好了 with no new
+ // sound goes on with the sounds already kept.
+ const finishSound=(sound:FinishedSound,then:FinishThen):FinishResult=>{
+  if(sound){
+   const {draft,source}=sound;
+   if(workSession.hasUnit(draft.id))workSession.updateUnit(draft,source);
+   else if(workSession.addUnit(draft,source).status==='full')return {status:'full'};
+  }else if(!workSession.unitCount())return {status:'empty'};
+  if(then==='another')return {status:'kept',nextMarkerIndex:workSession.nextMarkerIndex(),count:workSession.unitCount()};
   navigate({page:'sound-world'});
-  return {status:'opened'} as const;
+  return {status:'opened'};
  };
  const renderPage=()=>{
   if(route.page==='sound-birth')return <Suspense fallback={<PageFallback current="birth"/>}>
